@@ -1,0 +1,11 @@
+{
+  "$GMExtensionConfigSet": "GMExtensionConfigSet",
+  "configurables": {
+    "6d55f39c-5fab-4a8e-92c4-c67c03a3ea1e": null,
+    "1c9cb9b6-e2e0-4242-ba88-ad34b4911649": {
+      "Default": {
+        "value": "E:\\\\Projects\\\\MyTestHTTPSServer\\\\server\\\\MyTestHTTPSServer.exe"
+      }
+    }
+  }
+}

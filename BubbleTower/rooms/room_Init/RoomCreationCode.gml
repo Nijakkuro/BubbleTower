@@ -1,0 +1,2 @@
+CCore_Init();
+

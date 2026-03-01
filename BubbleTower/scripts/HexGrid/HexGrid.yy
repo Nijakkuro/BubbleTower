@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"HexGrid",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"HexGrid",
+  "parent":{
+    "name":"Game",
+    "path":"folders/_05_Scripts/Game.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

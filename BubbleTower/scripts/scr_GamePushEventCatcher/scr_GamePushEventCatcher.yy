@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scr_GamePushEventCatcher",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scr_GamePushEventCatcher",
+  "parent":{
+    "name":"_05_Scripts",
+    "path":"folders/_05_Scripts.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

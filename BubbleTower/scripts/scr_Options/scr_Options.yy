@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scr_Options",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scr_Options",
+  "parent":{
+    "name":"Core",
+    "path":"folders/_05_Scripts/Core.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

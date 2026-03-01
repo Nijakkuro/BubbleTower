@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"gml_utils",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"gml_utils",
+  "parent":{
+    "name":"_Libs",
+    "path":"folders/_05_Scripts/_Libs.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

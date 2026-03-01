@@ -1,0 +1,2 @@
+CDisplay.DrawGUIBegin();
+
