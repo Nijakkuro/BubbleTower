@@ -1,3 +1,5 @@
+
+
 view_enabled = true;
 view_visible[0] = true;
 
@@ -9,62 +11,35 @@ camera_set_view_size(_camera, gameScreenW, gameScreenH);
 camera_set_view_border(_camera, gameScreenW/2, gameScreenH/2);
 camera_set_view_target(_camera, noone);
 
-_smoothFactorX = 8;
-_smoothFactorY = 8;
 
-_targetPosX = 0;
-_targetPosY = 0;
+x = -1000;
+z = 5;//-120;
 
-x = 0; //gameScreenW / 2;
-y = -gameScreenH/2; //gameScreenH / 2;
+ZAngle = 0;
 
-var target = undefined; //instance_find(obj_Player, 0);
-_target = target; /*!=noone ? obj_Player : undefined;*/
-if(_target!=undefined)
-{
-	x = _target.x;
-	y = _target.y;
-}
+XTo = 0;
+YTo = 0;
+ZTo = 5;
 
-_x = x;
-_y = y;
+Distance = 280;
 
-_endStep = function()
-{
-	var gameScreenH = 1080;
+_viewMat = matrix_build_identity();
+_projMat = matrix_build_identity();
+
+_endStep = function() {
+	var dirX = keyboard_check(vk_right) - keyboard_check(vk_left);
+	if(dirX!=0) {
+		ZAngle -= dirX;
+	}
+	
+	x = -lengthdir_x(Distance, ZAngle);
+	y = -lengthdir_y(Distance, ZAngle);
+	
 	var asp = NOGX_get_canvas_width() / NOGX_get_canvas_height();
-	var gameScreenW = asp * gameScreenH;
-	camera_set_view_size(_camera, gameScreenW, gameScreenH);
 	
-	if(_target!=undefined)
-	{
-		_targetPosX = clamp(_target.x, gameScreenW/2, room_width-gameScreenW/2);
-		_targetPosY = clamp(_target.y, gameScreenH/2, room_height-gameScreenH/2);
-		
-		var xTo = _targetPosX;
-		var yTo = _targetPosY;
-		
-		var dx = xTo - _x;
-		var dy = yTo - _y;
-		
-		_x += dx / _smoothFactorX;
-		_y += dy / _smoothFactorY;
-		
-		_x = clamp(_x, gameScreenW/2, room_width-gameScreenW/2);
-		_y = clamp(_y, gameScreenH/2, room_height-gameScreenH/2);
-		
-		x = round(_x);
-		y = round(_y);
-	}
-	else
-	{
-		//x = room_width / 2;
-		//y = room_height / 2;
-		
-		x = 0; //gameScreenW / 2;
-		y = gameScreenH/2; //gameScreenH / 2;
-	}
-	
-	camera_set_view_pos(_camera, x - gameScreenW/2, y - gameScreenH/2);
+	matrix_build_lookat(x, y, z, XTo, YTo, ZTo, 0, 0, 1, _viewMat);
+	matrix_build_projection_perspective_fov_fix_out(50, asp, 0.1, 2048, _projMat);
+	camera_set_view_mat(_camera, _viewMat);
+	camera_set_proj_mat(_camera, _projMat);
 }
 

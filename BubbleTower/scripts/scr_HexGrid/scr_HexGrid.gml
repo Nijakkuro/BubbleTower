@@ -21,6 +21,7 @@ function sBall(color) constructor
 	Color = color;
 }
 
+
 function sHexGrid() constructor
 {
 	//    (1)(2)
@@ -30,14 +31,14 @@ function sHexGrid() constructor
 	_x = 24;
 	_y = 24;
 	
-	_ballRadius = 24;
+	_ballRadius = 10;
 	
 	_shiftX = _ballRadius * 2;
 	_rx2 = -_ballRadius;
 	_ry2 = sqrt(3) * _ballRadius;
 	
-	_cellNumX = 20;
-	_cellNumY = 20;
+	_cellNumX = 24;
+	_cellNumY = 18;
 	_cellNumTotal = _cellNumX * _cellNumY;
 	_grid = array_create(_cellNumTotal, undefined);
 	
@@ -46,7 +47,7 @@ function sHexGrid() constructor
 	_y = 0;
 	_h = _ry2 * _cellNumY;
 	
-	for(var i=0; i<_cellNumTotal/2; i++)
+	for(var i=0; i<_cellNumTotal; i++)
 	{
 		var color = choose(
 			#FF0000, #FFFF00, #00FF00, #00FFFF, #0000FF//, #FF00FF, c_orange
@@ -54,9 +55,17 @@ function sHexGrid() constructor
 		_grid[i] = new sBall(color);
 	}
 	
+	GetCellNumX = function() { return _cellNumX; }
+	GetCellNumY = function() { return _cellNumY; }
+	
 	GetCell = function(cx, cy)
 	{
 		return _grid[ cy * _cellNumX + (cx % _cellNumX + _cellNumX) % _cellNumX ];
+	}
+	
+	ToWorld = function(cx, cy)
+	{
+		
 	}
 	
 	_selectIdx = -1;

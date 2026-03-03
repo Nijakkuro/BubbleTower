@@ -281,6 +281,14 @@ function matrix_build_projection_perspective_fov_fix(fov, aspect, zNear, zFar)
 	return projMat;
 }
 
+function matrix_build_projection_perspective_fov_fix_out(fov, aspect, zNear, zFar, outMatrix)
+{
+	matrix_build_projection_perspective_fov(fov, aspect, zNear, zFar, outMatrix);
+	if(os_type==os_linux || os_type==os_gxgames || os_type==os_android || os_type==os_windows) {
+		outMatrix[@ 5] = -outMatrix[@ 5]; // flip Z-Axis to Up-positive/Down-negative
+	}
+}
+
 global.__matrix_view_stack = ds_stack_create();
 global.__matrix_proj_stack = ds_stack_create();
 
@@ -389,5 +397,59 @@ function draw_dotted_circle_busy_indicator(cx, cy, radius=64,
 		draw_set_colour(merge_colour(dotColorFrom, dotColorTo, value));
 		draw_circle(dx, dy, r, false);
 	}
+}
+
+
+// vertex
+
+function vertex_pos_col(vBuff, vx, vy, vz, vc, va)
+{
+	vertex_position_3d(vBuff, vx, vy, vz);
+	vertex_color(vBuff, vc, va);
+}
+
+function vertex_pos_tex(vBuff, vx, vy, vz, tx, ty)
+{
+	vertex_position_3d(vBuff, vx, vy, vz);
+	vertex_texcoord(vBuff, tx, ty);
+}
+
+function vertex_pos_tex_col(vBuff, vx, vy, vz, tx, ty, vc, va)
+{
+	vertex_position_3d(vBuff, vx, vy, vz);
+	vertex_texcoord(vBuff, tx, ty);
+	vertex_color(vBuff, vc, va);
+}
+
+function vertex_pos_tex_norm(vBuff, vx, vy, vz, tx, ty, nx, ny, nz)
+{
+	vertex_position_3d(vBuff, vx, vy, vz);
+	vertex_texcoord(vBuff, tx, ty);
+	vertex_normal(vBuff, nx, ny, nz);
+}
+
+function vertex_pos_tex_norm_tan(vBuff, vx, vy, vz, tx, ty, nx, ny, nz, tanX, tanY, tanZ)
+{
+	vertex_position_3d(vBuff, vx, vy, vz);
+	vertex_texcoord(vBuff, tx, ty);
+	vertex_normal(vBuff, nx, ny, nz);
+	vertex_float3(vBuff, tanX, tanY, tanZ);
+}
+
+function vertex_pos_tex_norm_tan_col(vBuff, vx, vy, vz, tx, ty, nx, ny, nz, tanX, tanY, tanZ, vc, va)
+{
+	vertex_position_3d(vBuff, vx, vy, vz);
+	vertex_texcoord(vBuff, tx, ty);
+	vertex_normal(vBuff, nx, ny, nz);
+	vertex_float3(vBuff, tanX, tanY, tanZ);
+	vertex_color(vBuff, vc, va);
+}
+
+function vertex_pos_tex_norm_col(vBuff, vx, vy, vz, tx, ty, nx, ny, nz, vc, va)
+{
+	vertex_position_3d(vBuff, vx, vy, vz);
+	vertex_texcoord(vBuff, tx, ty);
+	vertex_normal(vBuff, nx, ny, nz);
+	vertex_color(vBuff, vc, va);
 }
 

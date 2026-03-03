@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scr_Skybox",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scr_Skybox",
+  "parent":{
+    "name":"Game",
+    "path":"folders/_05_Scripts/Game.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

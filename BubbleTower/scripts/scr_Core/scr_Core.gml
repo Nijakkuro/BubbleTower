@@ -336,6 +336,25 @@ function sCCore() constructor
 	{
 		show_debug_message("Error: {0}", str);
 	}
+	
+	
+	
+	
+	//application_surface_enable(true);
+	//application_surface_draw_enable(false);
+	shader_reset();
+	gpu_set_ztestenable(true);
+	gpu_set_zwriteenable(true);
+	gpu_set_alphatestenable(true);
+	gpu_set_alphatestref(16.0);
+	//gpu_set_cullmode(cull_counterclockwise);
+	gpu_set_tex_filter(true);
+	gpu_set_tex_mip_enable(mip_on);
+	gpu_set_tex_mip_filter(tf_linear);
+	gpu_set_tex_min_mip(0);
+	gpu_set_tex_max_mip(4);
+	gpu_set_tex_max_aniso(4);
+	gpu_set_tex_repeat(true);
 }
 
 function CCore_Init()
