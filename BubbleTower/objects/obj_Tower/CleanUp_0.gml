@@ -1,2 +1,2 @@
-_cylinder.CleanUp();
+_cleanUp();
 

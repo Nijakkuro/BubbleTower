@@ -15,7 +15,7 @@ camera_set_view_target(_camera, noone);
 x = -1000;
 z = 5;//-120;
 
-ZAngle = 0;
+ZAngle = 180;
 
 XTo = 0;
 YTo = 0;
@@ -34,6 +34,12 @@ _endStep = function() {
 	
 	x = -lengthdir_x(Distance, ZAngle);
 	y = -lengthdir_y(Distance, ZAngle);
+	
+	if(instance_number(obj_Tower)>0)
+	{
+		z = obj_Tower._cylinderCZ + 5;
+		ZTo = z;
+	}
 	
 	var asp = NOGX_get_canvas_width() / NOGX_get_canvas_height();
 	

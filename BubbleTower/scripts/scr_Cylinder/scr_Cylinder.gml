@@ -12,7 +12,7 @@ function sCylinder() constructor {
 	
 	var s = 50;
 	
-	var stepCount = 32;
+	var stepCount = 30;
 	var step = 360 / stepCount;
 	var sideTextureRepeat = 4;
 	

@@ -13,7 +13,7 @@ function sSphere() constructor {
 
 	var s = 50;
 	
-	var stepCount = 32;
+	var stepCount = 18; //32;
 	var step = 360 / stepCount;
 	var halfStepCount = stepCount / 2;
 	var sideTextureRepeat = 4;
