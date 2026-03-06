@@ -38,8 +38,8 @@ function sCylindricRaycastLine() constructor
 	
 	Draw = function(x, y, z, cylinderRadius, cylinderSpinLen, startPosAngle, rayAngle, rayThickness, raySegmentLen, traceLen)
 	{
-		var segmentNum = min( floor(traceLen / raySegmentLen) , _maxSegmentNum );
-		if(segmentNum==0) {
+		var segmentNum = min( round(traceLen / raySegmentLen) , _maxSegmentNum );
+		if(segmentNum<=0) {
 			return;
 		}
 		

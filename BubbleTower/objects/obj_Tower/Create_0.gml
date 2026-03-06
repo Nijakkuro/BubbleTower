@@ -72,11 +72,21 @@ _drawRay = function() {
 	var rayThickness = _gameField._ballRadius / 2;
 	var raySegmentLen = _gameField._ballRadius;
 	
-	var traceLen = 10000;
+	var traceLen = _gameField.GetCannonTraceLength();
 	_cylindricRaycast.Draw( 0, 0, posZ,
 		cylinderRadius, cylinderFullSpinLen, startPosAngle,
 		rayAngle, rayThickness, raySegmentLen, traceLen
 	);
+	
+	var idx = _gameField.GetCannonTraceCellIndex();
+	if(idx!=-1)
+	{
+		var px = _gameField._positionsLUT3D_X[idx];
+		var py = _gameField._positionsLUT3D_Y[idx];
+		var pz = _gameField._positionsLUT3D_Z[idx];
+		var s = 0.1;
+		_sphere.Draw(px, py, pz, s, s, s, c_orange);
+	}
 }
 
 // CLEAN UP
@@ -113,6 +123,15 @@ _step = function()
 		}
 	}
 	
+	if(device_mouse_check_button(0, mb_right))
+	{
+		window_set_cursor(cr_size_we);
+	}
+	else
+	{
+		window_set_cursor(cr_default);
+	}
+	
 	/*
 	if(_hit)
 	{
@@ -120,6 +139,11 @@ _step = function()
 		_gameField.SetCannonAngleByTargetPos(_hitPos2D[0], _hitPos2D[1]);
 	}
 	*/
+	
+	if(_hit)
+	{
+		_gameField.CannonTrace();
+	}
 	
 	_gameField.Step();
 }
@@ -142,6 +166,13 @@ _draw = function()
 _drawGUI = function()
 {
 	_gameField.Draw(4, 4);
+	
+	var gw = display_get_gui_width();
+	var gh = display_get_gui_height();
+	
+	draw_set_color(c_white);
+	draw_set_halign(fa_center);
+	draw_text(gw/2, 16, $"FPS = {fps}");
 	
 	/*
 	var mx = device_mouse_x_to_gui(0);

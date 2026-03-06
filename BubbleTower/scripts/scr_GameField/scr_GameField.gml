@@ -34,9 +34,9 @@ function sBall(color) constructor
 
 
 function sGameField() constructor {
-	//    (1)(2)
-	//  (6)(0)(3)
-	//   (5)(4)
+	//        (1)(2)
+	//    (6)(0)(3)
+	//     (5)(4)
 	
 	_ballDiameter = 10;
 	_ballRadius = _ballDiameter / 2;
@@ -95,11 +95,19 @@ function sGameField() constructor {
 	_cannonY = _cylinderHeight - _ballRadius;
 	_cannonAngle = 0;
 	_cannonTraceLength = 100;
+	_cannonTraceResultX = 0;
+	_cannonTraceResultY = 0;
+	_cannonTraceCellIndex = -1;
+	
 	SetCannonPositionByAngle = function(angle) {
 		_cannonX = angle_normalize360(angle) / 360 * _fieldW;
 	}
 	
 	SetCannonAngleByTargetPos = function(px, py) {
+		if(py>_fieldH + _ballRadius) {
+			return false;
+		}
+		
 		var angle1 = (_cannonX / _fieldW) * 360;
 		var angle2 = (px / _fieldW) * 360;
 		var posDiff = angle_difference(angle2, angle1) / 360 * _fieldW;
@@ -127,13 +135,96 @@ function sGameField() constructor {
 		return false;
 	}
 	
+	// Вычисляет позицию, на которую прилетит шарик при выстреле из пушки из текущей позиции и направления
 	CannonTrace = function() {
 		
+		// пушка расположена ниже чем шестиугольное поле шариков
+		var startX = _cannonX;
+		var startY = _cannonY;
+		
+		// направление пушки
+		var dirX = lengthdir_x(1, _cannonAngle + 90);
+		var dirY = lengthdir_y(1, _cannonAngle + 90);
+		
+		if(dirY>0) { // пушка направлена от поля
+			return false;
+		}
+		
+		var ringRadius = _ballRadius * 1.25;
+		var ringRadiusSquared = ringRadius * ringRadius;
+		
+		var hit = false;
+		var bestHitDist = infinity;
+		var bestHitY = -infinity;
+		
+		var grid = _grid; // одномерный массив
+		var width = _fieldW; // ширина поля
+		var cellNumX = _cellNumX; // количество ячеек по оси X
+		var cellNumY = _cellNumY; // количество ячеек по оси Y
+		var positionsLUT2D_X = _positionsLUT2D_X;
+		var positionsLUT2D_Y = _positionsLUT2D_Y;
+		
+		var originY = _ballRadius;
+		var ballStepY = _ballStepY;
+		
+		for (var row = cellNumY - 1; row >= 0; row--) {
+			var rowCenterY = originY + row * ballStepY;
+			
+			// Если вся окружность этого и всех верхних рядов целиком выше (меньше по Y),
+			// чем уже найденная лучшая точка пересечения, можно завершить поиск.
+			if (hit && rowCenterY + ringRadius <= bestHitY) {
+				break;
+			}
+			
+			var startIdx = row * cellNumX;
+			var cy = positionsLUT2D_Y[startIdx];
+			
+			// Оцениваем, где луч будет по X, когда достигнет уровня ВЕРХНЕЙ границы кольца шарика
+			// (так как стреляем снизу, коллизия вероятнее всего произойдет с нижней части кольца)
+			var collisionYEstimate = cy - ringRadius;
+			var t = (collisionYEstimate - startY) / dirY; // Параметр t: насколько далеко по лучу нужно пройти, чтобы достичь collisionYEstimate
+			var xAtCollision = startX + dirX * t; // Горизонтальная позиция луча в этой точке
+			
+			for (var col = 0; col < cellNumX; col++) {
+				var idx = startIdx + col;
+				var ball = grid[idx];
+				if (ball==undefined) {
+					continue;
+				}
+				
+				var baseCx = positionsLUT2D_X[idx];
+				
+				var kIdeal = round((xAtCollision - baseCx) / width);
+				var kStart = kIdeal - 1;
+				var kEnd = kIdeal + 1;
+				
+				for (var k = kStart; k <= kEnd; k++) {
+					var cx = baseCx + k * width;
+					var hitDist = ray_circle_collision_point_dist(startX, startY, dirX, dirY, cx, cy, ringRadiusSquared);
+					if (hitDist!=-1 && hitDist < bestHitDist) {
+						hit = true;
+						bestHitDist = hitDist;
+						bestHitY = startY + dirY * bestHitDist;
+					}
+				}
+			}
+		}
+		
+		if(hit) {
+			var bestHitX = startX + dirX * bestHitDist;
+			_cannonTraceResultX = bestHitX;
+			_cannonTraceResultY = bestHitY;
+			_cannonTraceLength = point_distance(startX, startY, bestHitX, bestHitY);
+			_cannonTraceCellIndex = _snapToIndex(bestHitX, bestHitY);
+			return true;
+		}
+		
+		return false;
 	}
 	
 	GetCannonAngle = function() { return _cannonAngle; }
 	GetCannonTraceLength = function() { return _cannonTraceLength; }
-	
+	GetCannonTraceCellIndex = function() { return _cannonTraceCellIndex; }
 	
 	// positions LUT
 	_positionsLUT2D_X = array_create(_cellNumTotal);
@@ -202,7 +293,12 @@ function sGameField() constructor {
 	
 	Draw = function(px, py)
 	{
-		var scl = 2;
+		if(display_get_gui_width() < 1200)
+		{
+			return;
+		}
+		
+		var scl = 3;
 		
 		var r = _ballRadius * scl-1;
 		
@@ -239,10 +335,16 @@ function sGameField() constructor {
 		
 		draw_line(cannonX, cannonY, cannonX + lengthdir_x(scl * _fieldH, _cannonAngle + 90), cannonY + lengthdir_y(scl * _fieldH, _cannonAngle + 90));
 		
+		draw_set_color(c_red);
+		draw_circle(px + _cannonTraceResultX * scl, py + + _cannonTraceResultY * scl, 4, false);
+		
 		_drawSelectedCell(px, py, scl);
 	}
 	
-	_snapToIndex = function(px, py, outPos) {
+	_snapToIndex = function(px, py) {
+		
+		px = wrap(px, 0, _fieldW); // wrap x
+		
 		var size = _ballRadius;
 		var cellSizeX = size; //size * sqrt(3) / 2;
 		var cellSizeY = ( size * (2 / sqrt(3)) ) / 2; //size / 2;
@@ -274,8 +376,8 @@ function sGameField() constructor {
 			return -1;
 		}
 		
-		outPos[@ 0] = ix * cellSizeX;
-		outPos[@ 1] = iy * cellSizeY + _ballRadius;
+		//outPos[@ 0] = ix * cellSizeX;
+		//outPos[@ 1] = iy * cellSizeY + _ballRadius;
 		
 		return rowIdx * _cellNumX + colIdx;
 	}
@@ -301,8 +403,8 @@ function sGameField() constructor {
 		var r = _ballRadius * scl;
 		
 		
-		var outPos = [ 0, 0 ];
-		var i = _snapToIndex((mx - px) / scl, (my - py)/scl, outPos);
+		//var outPos = [ 0, 0 ];
+		var i = _snapToIndex((mx - px) / scl, (my - py)/scl);//, outPos);
 		if(i==-1)
 		{
 			return;
@@ -391,7 +493,7 @@ function point_line_projection_2d(px, py, x1, y1, x2, y2, outResult)
 	
 	var ldx = (x2 - x1) / l;
 	var ldy = (y2 - y1) / l;
-	var k = dot_product(px - x1,  py - y1, ldx, ldy);
+	var k = dot_product(px - x1,    py - y1, ldx, ldy);
 	
 	outResult[@ 0] = x1 + ldx * k;
 	outResult[@ 1] = y1 + ldy * k;
@@ -419,5 +521,35 @@ function line_circle_collision_point(x1, y1, x2, y2, cx, cy, cr, outResult)
 	}
 	
 	return false;
+}
+
+function ray_circle_collision_point_dist(ox, oy, dx, dy, cx, cy, crSq) {
+	// Вектор от центра окружности к началу луча: F = O - C
+	var fx = ox - cx;
+	var fy = oy - cy;
+	
+	// Коэффициенты квадратного уравнения t^2 + 2*b*t + c = 0
+	// b = скалярное произведение (F · D)
+	//var b = fx * dx + fy * dy;
+	var b = dot_product(fx, fy, dx, dy);
+	
+	// c = |F|^2 - r^2
+	//var c = fx * fx + fy * fy - crSq;
+	var c = dot_product(fx, fy, fx, fy) - crSq;
+	
+	// Дискриминант (упрощенный, т.к. a=1)
+	// k = b^2 - c
+	var k = b * b - c;
+	
+	// Если дискриминант отрицательный, пересечений нет
+	if (k < 0) return -1;
+	
+	var sqrtK = sqrt(k);
+	
+	// Находим корни. Нам нужен наименьший t >= 0.
+	// t1 = -b - sqrtK
+	// t2 = -b + sqrtK
+	// Поскольку sqrtK >= 0, t1 всегда <= t2. Проверяем t1 первым.
+	return -b - sqrtK;
 }
 

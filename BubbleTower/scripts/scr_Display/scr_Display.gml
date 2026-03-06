@@ -44,7 +44,7 @@ function sCDisplay() constructor
 		var w = NOGX_get_canvas_width();
 		var h = NOGX_get_canvas_height();
 		var asp = w / h;
-		var guiH = 720;
+		var guiH = 1080;
 		var guiW = guiH * asp;
 		display_set_gui_size(guiW, guiH);
 	}
