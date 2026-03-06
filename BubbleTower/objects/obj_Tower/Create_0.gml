@@ -1,13 +1,13 @@
 _cylinder = new sCylinder();
 _sphere = new sSphere();
-_grid = new sHexGrid();
+_gameField = new sGameField();
 _cylindricRaycast = new sCylindricRaycastLine();
 
-_cylinderRadius = _grid._cylinderRadius;
-_cylinderHeight = _grid._cylinderHeight;
+_cylinderRadius = _gameField._cylinderRadius;
+_cylinderHeight = _gameField._cylinderHeight;
 
-_cylinderZ2 = _grid._fieldH;
-_cylinderZ1 = -_grid._ballDiameter * 2;
+_cylinderZ2 = _gameField._fieldH;
+_cylinderZ1 = -_gameField._ballDiameter * 2;
 _cylinderHeight = _cylinderZ2 - _cylinderZ1;
 _cylinderCZ = _cylinderZ1 + _cylinderHeight * 0.5;
 
@@ -15,18 +15,18 @@ _drawSpheres = function()
 {
 	var outPos = [0, 0];
 	
-	var s = (_grid._ballDiameter - 0.25) / 100;
-	var n = _grid._cellNumTotal;
+	var s = (_gameField._ballDiameter - 0.25) / 100;
+	var n = _gameField._cellNumTotal;
 	for(var i=0; i<n; i++)
 	{
-		var ball = _grid._grid[i];
+		var ball = _gameField._grid[i];
 		if(ball!=undefined)
 		{
-			var px = _grid._positionsLUT2D_X[i];
-			var py = _grid._positionsLUT2D_Y[i];
-			//var pz = _grid._positionsLUT3D_Z[i];
+			var px = _gameField._positionsLUT2D_X[i];
+			var py = _gameField._positionsLUT2D_Y[i];
+			//var pz = _gameField._positionsLUT3D_Z[i];
 			
-			_grid.Convert2DTo3D(px + ball.OffsetX, py + ball.OffsetY, outPos);
+			_gameField.Convert2DTo3D(px + ball.OffsetX, py + ball.OffsetY, outPos);
 			px = outPos[0];
 			py = outPos[1];
 			var pz = outPos[2];
@@ -35,9 +35,9 @@ _drawSpheres = function()
 		}
 	}
 	
-	var px = -lengthdir_x(_grid._wrapRadius, obj_Camera.ZAngle);
-	var py = -lengthdir_y(_grid._wrapRadius, obj_Camera.ZAngle);
-	_sphere.Draw(px, py, -_grid._ballDiameter * 1.5, s, s, s, c_white);
+	var px = -lengthdir_x(_gameField._wrapRadius, obj_Camera.ZAngle);
+	var py = -lengthdir_y(_gameField._wrapRadius, obj_Camera.ZAngle);
+	_sphere.Draw(px, py, -_gameField._ballDiameter * 1.5, s, s, s, c_white);
 }
 
 _result = [ 0, 0, 0, 0, 0, 0 ];
@@ -53,21 +53,39 @@ _drawTower = function()
 	_cylinder.Draw(0, 0, _cylinderCZ + _cylinderHeight, s, s, _cylinderHeight / 100);
 	
 	_cylinder.Draw(0, 0, _cylinderCZ - _cylinderHeight, s, s, _cylinderHeight / 100);
+	
+	s = (_cylinderRadius * 2 + 1)/100;
+	_cylinder.Draw(0, 0, _cylinderZ1 + _gameField._ballRadius * 4, s, s, 0.001);
 }
 
-_drawRay = function()
-{
-	if(_hit)
-	{
-		var angle = _grid.GetRayAngle();
-		_cylindricRaycast.Draw( 0, 0, _cylinderZ1 + _grid._ballRadius, _grid._wrapRadius, _grid._fieldW, -obj_Camera.ZAngle + 180, angle, _grid._ballRadius / 2, _grid._ballRadius, 10000);
+_drawRay = function() {
+	if(!_hit) {
+		return;
 	}
+	
+	var posZ = _cylinderZ1 + _gameField._ballRadius;
+	var cylinderRadius = _gameField._wrapRadius;
+	var cylinderFullSpinLen = _gameField._fieldW;
+	var startPosAngle =  -obj_Camera.ZAngle + 180;
+	
+	var rayAngle = -_gameField.GetCannonAngle();
+	var rayThickness = _gameField._ballRadius / 2;
+	var raySegmentLen = _gameField._ballRadius;
+	
+	var traceLen = 10000;
+	_cylindricRaycast.Draw( 0, 0, posZ,
+		cylinderRadius, cylinderFullSpinLen, startPosAngle,
+		rayAngle, rayThickness, raySegmentLen, traceLen
+	);
 }
 
 // CLEAN UP
 _cleanUp = function()
 {
 	_cylinder.CleanUp();
+	_sphere.CleanUp();
+	_cylindricRaycast.CleanUp();
+	_gameField.CleanUp();
 }
 
 _ray = [ 0, 0, 0, 0, 0, 0 ];
@@ -78,7 +96,7 @@ _hitPos2D = [ 0, 0 ];
 // STEP
 _step = function()
 {
-	_grid.SetCannonPosition(obj_Camera.ZAngle-180);
+	_gameField.SetCannonPositionByAngle(obj_Camera.ZAngle-180);
 	
 	_hit = false;
 	if(device_mouse_check_button(0, mb_left))
@@ -89,19 +107,21 @@ _step = function()
 		var gh = display_get_gui_height();
 		screen_to_world_ray_perspective(mx, my, obj_Camera._viewMat, obj_Camera._projMat, gw, gh, _ray);
 		
-		if(_grid.WrapCylinderRayCast(_ray[0], _ray[1], _ray[2], _ray[3], _ray[4], _ray[5], _hitPos))
+		if(_gameField.SetCannonAngleByWrapCylinderRaycast(_ray[0], _ray[1], _ray[2], _ray[3], _ray[4], _ray[5]))
 		{
 			_hit = true;
 		}
 	}
 	
+	/*
 	if(_hit)
 	{
-		_grid.Convert3DTo2D(_hitPos[0], _hitPos[1], _hitPos[2], _hitPos2D);
-		_grid.SetRayTargetPos(_hitPos2D[0], _hitPos2D[1]);
+		_gameField.Convert3DTo2D(_hitPos[0], _hitPos[1], _hitPos[2], _hitPos2D);
+		_gameField.SetCannonAngleByTargetPos(_hitPos2D[0], _hitPos2D[1]);
 	}
+	*/
 	
-	_grid.Step();
+	_gameField.Step();
 }
 
 // DRAW
@@ -110,10 +130,10 @@ _draw = function()
 	_drawTower();
 	_drawSpheres();
 	
-	if(_hit)
-	{
-		_sphere.Draw(_hitPos[0], _hitPos[1], _hitPos[2], 0.1, 0.1, 0.1, c_orange);
-	}
+	//if(_hit)
+	//{
+	//	_sphere.Draw(_hitPos[0], _hitPos[1], _hitPos[2], 0.1, 0.1, 0.1, c_orange);
+	//}
 	
 	_drawRay();
 }
@@ -121,7 +141,7 @@ _draw = function()
 // DRAW GUI
 _drawGUI = function()
 {
-	_grid.Draw(4, 4);
+	_gameField.Draw(4, 4);
 	
 	/*
 	var mx = device_mouse_x_to_gui(0);

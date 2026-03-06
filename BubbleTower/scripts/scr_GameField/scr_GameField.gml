@@ -33,8 +33,7 @@ function sBall(color) constructor
 }
 
 
-function sHexGrid() constructor
-{
+function sGameField() constructor {
 	//    (1)(2)
 	//  (6)(0)(3)
 	//   (5)(4)
@@ -52,21 +51,20 @@ function sHexGrid() constructor
 	_fieldW = _ballStepX * _cellNumX;
 	_fieldH = _ballStepY * _cellNumY - _ballStepY + _ballDiameter;
 	
-	_grid = array_create(_cellNumTotal, undefined);
-	
 	_angleStep = 360 / _cellNumX;
 	_angleHalfStep = _angleStep / 2;
 	_wrapRadius = _ballRadius / dtan(_angleHalfStep);
 	_cylinderRadius = _wrapRadius - _ballRadius;
 	_cylinderHeight = _fieldH + _ballDiameter * 2;
 	
-	_createBalls = function(rowNum)
-	{
+	_grid = array_create(_cellNumTotal, undefined);
+	
+	
+	// create balls
+	_createBalls = function(rowNum) {
 		var cellNum = rowNum * _cellNumX;
-		for(var i=0; i<cellNum; i++)
-		{
-			if(irandom(1))
-			{
+		for(var i=0; i<cellNum; i++) {
+			if(irandom(1)) {
 				var color = choose(
 					#FF0000, #FFFF00, #00FF00, #00FFFF, #0000FF//, #FF00FF, c_orange
 				);
@@ -74,60 +72,81 @@ function sHexGrid() constructor
 			}
 		}
 	}
-	
 	_createBalls(10);
 	
-	Convert2DTo3D = function(px, py, outPos)
-	{
+	
+	// coord conversion
+	Convert2DTo3D = function(px, py, outPos) {
 		var anglePos = (px / _fieldW) * 360;
 		outPos[@ 0] = lengthdir_x(_wrapRadius, anglePos);
 		outPos[@ 1] = lengthdir_y(_wrapRadius, anglePos);
-		outPos[@ 2] = _fieldH - py;// - _ballRadius;
+		outPos[@ 2] = _fieldH - py;
 	}
 	
-	Convert3DTo2D = function(px, py, pz, outPos)
-	{
+	Convert3DTo2D = function(px, py, pz, outPos) {
 		var dir = point_direction(0, 0, px, py);
 		outPos[@ 0] = (dir / 360) * _fieldW;
 		outPos[@ 1] = _fieldH - pz;
 	}
 	
+	
+	// cannon
+	_cannonX = 0;
 	_cannonY = _cylinderHeight - _ballRadius;
-	SetCannonPosition = function(angle)
-	{
+	_cannonAngle = 0;
+	_cannonTraceLength = 100;
+	SetCannonPositionByAngle = function(angle) {
 		_cannonX = angle_normalize360(angle) / 360 * _fieldW;
 	}
 	
-	_rayTargetPosX = 0;
-	_rayTargetPosY = 0;
-	SetRayTargetPos = function(px, py)
-	{
-		_rayTargetPosX = px;
-		_rayTargetPosY = py;
-	}
-	
-	GetRayAngle = function()
-	{
+	SetCannonAngleByTargetPos = function(px, py) {
 		var angle1 = (_cannonX / _fieldW) * 360;
-		var angle2 = (_rayTargetPosX / _fieldW) * 360;
-		var posDiff = angle_difference(angle1, angle2) / 360 * _fieldW;
-		return point_direction(0, _cannonY, posDiff, _rayTargetPosY) - 90;
+		var angle2 = (px / _fieldW) * 360;
+		var posDiff = angle_difference(angle2, angle1) / 360 * _fieldW;
+		_cannonAngle = point_direction(0, _cannonY, posDiff, py) - 90;
+		return true;
 	}
 	
+	SetCannonAngleByWrapCylinderRaycast = function(ox, oy, oz, vx, vy, vz) {
+		static col = [ 0, 0, 0, 0 ];
+		
+		var dist2d = point_distance(0, 0, vx, vy);
+		if(dist2d<0.0000001) {
+			return false;
+		}
+		
+		if(line_circle_collision_point(ox, oy, ox + vx, oy + vy, 0, 0, _wrapRadius, col)) {
+			var resX = col[0];
+			var resY = col[1];
+			var resZ = oz + point_distance(ox, oy, col[0], col[1]) * (vz / dist2d);
+			
+			static res2 = [ 0, 0 ];
+			Convert3DTo2D(resX, resY, resZ, res2);
+			return SetCannonAngleByTargetPos(res2[0], res2[1]);
+		}
+		return false;
+	}
+	
+	CannonTrace = function() {
+		
+	}
+	
+	GetCannonAngle = function() { return _cannonAngle; }
+	GetCannonTraceLength = function() { return _cannonTraceLength; }
+	
+	
+	// positions LUT
 	_positionsLUT2D_X = array_create(_cellNumTotal);
 	_positionsLUT2D_Y = array_create(_cellNumTotal);
 	_positionsLUT3D_X = array_create(_cellNumTotal);
 	_positionsLUT3D_Y = array_create(_cellNumTotal);
 	_positionsLUT3D_Z = array_create(_cellNumTotal);
-	_createPositionsLUT = function()
-	{
+	_createPositionsLUT = function() {
 		var k = 0;
-		for(var j=0; j<_cellNumY; j++)
-		{
+		for(var j=0; j<_cellNumY; j++) {
 			var py = j * _ballStepY + _ballRadius;
 			var pxOffset = j%2==0 ? 0 : _ballOffsetX;
-			for(var i=0; i<_cellNumX; i++)
-			{
+			for(var i=0; i<_cellNumX; i++) {
 				var px = i * _ballStepX + pxOffset;
 				_positionsLUT2D_X[k] = px;
 				_positionsLUT2D_Y[k] = py;
@@ -136,8 +155,7 @@ function sHexGrid() constructor
 		}
 		
 		var pos3d = [];
-		for(var i=0; i<_cellNumTotal; i++)
-		{
+		for(var i=0; i<_cellNumTotal; i++) {
 			var px = _positionsLUT2D_X[i];
 			var py = _positionsLUT2D_Y[i];
 			Convert2DTo3D(px, py, pos3d);
@@ -146,42 +164,37 @@ function sHexGrid() constructor
 			_positionsLUT3D_Z[i] = pos3d[2];
 		}
 	}
-	
 	_createPositionsLUT();
 	
-	GetCellPos2D = function(cx, cy, outPos)
-	{
+	
+	// cell positions
+	GetCellPos2D = function(cx, cy, outPos) {
 		var i = cy * _cellNumX + cx;
 		outPos[@ 0] = _positionsLUT2D_X[i];
 		outPos[@ 1] = _positionsLUT2D_Y[i];
 	}
 	
-	GetCellPos3D = function(cx, cy, outPos)
-	{
+	GetCellPos3D = function(cx, cy, outPos) {
 		var i = cy * _cellNumX + cx;
 		outPos[@ 0] = _positionsLUT3D_X[i];
 		outPos[@ 1] = _positionsLUT3D_Y[i];
 		outPos[@ 2] = _positionsLUT3D_Z[i];
 	}
 	
-	GetCell = function(cx, cy)
-	{
+	GetCell = function(cx, cy) {
 		return _grid[ cy * _cellNumX + (cx % _cellNumX + _cellNumX) % _cellNumX ];
 	}
 	
-	CleanUp = function()
-	{
+	
+	CleanUp = function() {
 		
 	}
 	
-	Step = function()
-	{
+	Step = function() {
 		var pos3d = [];
-		for(var i=0; i<_cellNumTotal; i++)
-		{
+		for(var i=0; i<_cellNumTotal; i++) {
 			var cell = _grid[i];
-			if(cell!=undefined)
-			{
+			if(cell!=undefined) {
 				cell.Step();
 			}
 		}
@@ -220,21 +233,22 @@ function sHexGrid() constructor
 		draw_rectangle(x1, y2, x2, y2 + _ballDiameter * scl * 2, true);
 		
 		draw_set_color(c_white);
-		draw_circle(x1 + _cannonX * scl, y1 + _cannonY * scl, r, false);
+		var cannonX = x1 + _cannonX * scl;
+		var cannonY = y1 + _cannonY * scl;
+		draw_circle(cannonX, cannonY, r, false);
 		
-		draw_line(x1 + _cannonX * scl, y1 + _cannonY * scl, x1 + _rayTargetPosX * scl, y1 + _rayTargetPosY * scl);
+		draw_line(cannonX, cannonY, cannonX + lengthdir_x(scl * _fieldH, _cannonAngle + 90), cannonY + lengthdir_y(scl * _fieldH, _cannonAngle + 90));
 		
 		_drawSelectedCell(px, py, scl);
 	}
 	
-	_snapToIndex = function(px, py, outPos)
-	{
+	_snapToIndex = function(px, py, outPos) {
 		var size = _ballRadius;
 		var cellSizeX = size; //size * sqrt(3) / 2;
 		var cellSizeY = ( size * (2 / sqrt(3)) ) / 2; //size / 2;
-	
+		
 		py -= size; //cellSizeY * 2;
-	
+		
 		var ix = floor(px / cellSizeX);
 		var iy = floor(py / cellSizeY);
 		
@@ -312,6 +326,7 @@ function sHexGrid() constructor
 		draw_text(4, 4, $"index = {i}");
 	}
 	
+	/*
 	WrapCylinderRayCast = function(ox, oy, oz, vx, vy, vz, outResult)
 	{
 		static col = [ 0, 0, 0, 0 ];
@@ -329,6 +344,7 @@ function sHexGrid() constructor
 		}
 		return false;
 	}
+	*/
 }
 
 function screen_to_world_ray_perspective(x, y, viewMatrix, projMatrix, screenW, screenH, outResult)
