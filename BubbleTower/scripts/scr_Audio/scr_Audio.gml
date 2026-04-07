@@ -1,4 +1,4 @@
-#macro CAudioSettings global.sCAudioSettings
+#macro CAudioSettings global._sCAudioSettings
 CAudioSettings = sCAudioSettings;
 
 /// @ignore
@@ -34,7 +34,7 @@ function sCAudioSettings() : sCOptionGroup("Audio") constructor
 	SoundEnable = Enable;
 }
 
-#macro CAudio global.sCAudio
+#macro CAudio global._sCAudio
 CAudio = sCAudio;
 
 /// @ignore

@@ -1,4 +1,4 @@
-#macro CTime global.sCTime
+#macro CTime global._sCTime
 CTime = sCTime;
 
 /// @ignore

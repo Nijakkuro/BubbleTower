@@ -1,7 +1,7 @@
 #macro GameScreenW 1920
 #macro GameScreenH 1080
 
-#macro CDisplay global.sCDisplay
+#macro CDisplay global._sCDisplay
 CDisplay = sCDisplay;
 
 /// @ignore
@@ -14,7 +14,8 @@ function sCDisplay() constructor
 	
 	//gpu_set_tex_filter(false);
 	//gpu_set_tex_mip_enable(mip_markedonly);
-	gpu_set_blendmode_ext_sepalpha(bm_src_alpha, bm_inv_src_alpha, bm_one, bm_one);
+	//gpu_set_blendmode_ext_sepalpha(bm_src_alpha, bm_inv_src_alpha, bm_one, bm_one);
+	gpu_reset_blendmode();
 	
 	_display = instance_create_depth(0, 0, 10000, obj_Display);
 	_displayEnd = instance_create_depth(0, 0, -10000, obj_Display_End);

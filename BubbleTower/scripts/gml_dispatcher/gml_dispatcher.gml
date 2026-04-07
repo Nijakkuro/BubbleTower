@@ -31,7 +31,16 @@ function dispatcher() constructor
 		{
 			array_push( _bindedStructs, weak_ref_create(struct) );
 			array_push( _bindedFunctions, func );
-			array_push( _bindedMethods, method_get_self(func)==struct ? func : method(struct, func) );
+			
+			if(os_browser!=browser_not_a_browser)
+			{
+				array_push( _bindedMethods, method(struct, func) );
+			}
+			else
+			{
+				array_push( _bindedMethods, method_get_self(func)==struct ? func : method(struct, func) );
+			}
+			
 			_bufferUpdated = false;
 		}
 	}

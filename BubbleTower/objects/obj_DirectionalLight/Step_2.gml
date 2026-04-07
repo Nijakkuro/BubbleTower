@@ -1,0 +1,1 @@
+SetPosition(lengthdir_x(256, obj_Camera.ZAngle+180), lengthdir_y(256, obj_Camera.ZAngle+180), 256+42, 0, 0, 48);

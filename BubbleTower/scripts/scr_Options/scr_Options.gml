@@ -59,6 +59,7 @@ function sCOptionGroup(groupName="Settings", filename="options.ini") constructor
 		}
 		
 		var varNames = struct_get_names(self);
+		
 		var n = array_length(varNames);
 		for(var i=0; i<n; i++)
 		{
@@ -152,7 +153,7 @@ function sCOptionGroup(groupName="Settings", filename="options.ini") constructor
 }
 
 
-#macro COptionsSystem global.sCOptionsSystem
+#macro COptionsSystem global._sCOptionsSystem
 COptionsSystem = sCOptionsSystem;
 
 /// @ignore

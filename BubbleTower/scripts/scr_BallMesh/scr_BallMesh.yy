@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scr_BallMesh",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scr_BallMesh",
+  "parent":{
+    "name":"Game",
+    "path":"folders/_05_Scripts/Game.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

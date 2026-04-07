@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scr_SphericalBackground",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scr_SphericalBackground",
+  "parent":{
+    "name":"Game",
+    "path":"folders/_05_Scripts/Game.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

@@ -55,7 +55,7 @@ global._glb_pause = false;
 global._gp_pause = false;
 
 
-#macro CCore global.sCCore
+#macro CCore global._sCCore
 CCore = sCCore;
 
 /// @ignore
@@ -66,7 +66,7 @@ function sCCore() constructor
 	GameVersion = GM_version;
 	var versionArr = string_split(GameVersion, ".");
 	GameVersionString = "v" + versionArr[0] + "." + versionArr[1] + "." + versionArr[2];
-	DevMode = ( GM_build_type=="run" || parameter_value_as_bool("-dev_mode") );
+	DevMode = ( GM_build_type=="run" );
 	ShowFPS = DevMode;
 	
 	Mobile = false;
@@ -80,6 +80,12 @@ function sCCore() constructor
 		
 		if(keyboard_check_pressed(ord("P")))
 		{
+			//var buffer = buffer_create(256, buffer_fixed, 1);
+			///buffer_peek(buffer, 0, buffer_u8);
+		//}
+		
+		//if(game_get_speed(gamespeed_fps)==60)
+		//{
 			var newFps = game_get_speed(gamespeed_fps)==60 ? 999 : 60;
 			game_set_speed(newFps, gamespeed_fps);
 		}
@@ -125,10 +131,10 @@ function sCCore() constructor
 	
 	AsyncEventSocial = function()
 	{
-		if(GamePushEventCatcher().CatchEvent())
-		{
-			return;
-		}
+		//if(GamePushEventCatcher().CatchEvent())
+		//{
+		//	return;
+		//}
 		
 		if(DevMode)
 		{
@@ -258,7 +264,7 @@ function sCCore() constructor
 	
 	_onLanguageChanged = function(languageCode)
 	{
-		GamePush_ChangeLanguage(string_lower(languageCode));
+		//GamePush_ChangeLanguage(string_lower(languageCode));
 	}
 	
 	if(os_type==os_gxgames || os_browser!=browser_not_a_browser)
@@ -266,18 +272,18 @@ function sCCore() constructor
 		_initChecker = time_source_create(time_source_game, 1, time_source_units_frames, function(){
 			if(extension_exists("GamePush"))
 			{
-				if(GamePush_InitStatus())
+				//if(GamePush_InitStatus())
 				{
 					time_source_destroy(_initChecker);
 					struct_remove(self, "_initChecker");
 					
-					DevMode = DevMode || GamePush_IsDev();
+					//DevMode = DevMode || GamePush_IsDev();
 					ShowFPS = DevMode;
-					Mobile = GamePush_IsMobile();
+					//Mobile = GamePush_IsMobile();
 					
-					var languageCode = GamePush_Language();
-					CLocalizationSettings.Language.Set(languageCode);
-					CLocalizationSettings.Language.BindOnChanged(self, _onLanguageChanged);
+					//var languageCode = GamePush_Language();
+					//CLocalizationSettings.Language.Set(languageCode);
+					//CLocalizationSettings.Language.BindOnChanged(self, _onLanguageChanged);
 					
 					show_debug_message("--- initialization finished ---");
 					show_debug_message(GM_version);
@@ -308,13 +314,13 @@ function sCCore() constructor
 	{
 		if(!_gameReady)
 		{
-			GamePush_GameStart();
+			//GamePush_GameStart();
 			_gameReady = true;
 		}
 	}
 	
-	_pauseHandler = new sGamePushEventHandler(GamePush_CallOnPause, method(self, function(){ _setGlobalPause(true) }));
-	_resumeHandler = new sGamePushEventHandler(GamePush_CallOnResume, method(self, function(){ _setGlobalPause(false) }));
+	//_pauseHandler = new sGamePushEventHandler(GamePush_CallOnPause, method(self, function(){ _setGlobalPause(true) }));
+	//_resumeHandler = new sGamePushEventHandler(GamePush_CallOnResume, method(self, function(){ _setGlobalPause(false) }));
 	
 	LogInfo = function(str)
 	{
@@ -337,8 +343,12 @@ function sCCore() constructor
 		show_debug_message("Error: {0}", str);
 	}
 	
-	
-	
+	/*
+	var buffer = buffer_create(256, buffer_fixed, 1);
+	show_message(buffer);
+	var addr = buffer_get_address(buffer);
+	show_message(addr);
+	*/
 	
 	//application_surface_enable(true);
 	//application_surface_draw_enable(false);
@@ -347,14 +357,19 @@ function sCCore() constructor
 	gpu_set_zwriteenable(true);
 	gpu_set_alphatestenable(true);
 	gpu_set_alphatestref(16.0);
-	//gpu_set_cullmode(cull_counterclockwise);
+	gpu_set_cullmode(cull_counterclockwise);
+	
+	
 	gpu_set_tex_filter(true);
 	gpu_set_tex_mip_enable(mip_on);
 	gpu_set_tex_mip_filter(tf_linear);
 	gpu_set_tex_min_mip(0);
 	gpu_set_tex_max_mip(4);
 	gpu_set_tex_max_aniso(4);
+	
 	gpu_set_tex_repeat(true);
+	
+	//display_reset(0, false);
 }
 
 function CCore_Init()

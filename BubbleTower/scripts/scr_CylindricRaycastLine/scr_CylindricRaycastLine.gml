@@ -10,8 +10,8 @@ function sCylindricRaycastLine() constructor
 	_maxSegmentNum = 100;
 	for(var i=0; i<=_maxSegmentNum; i++)
 	{
-		vertex_position_3d(vbuff, 0, 0, i);
 		vertex_position_3d(vbuff, 0, 1, i);
+		vertex_position_3d(vbuff, 0, 0, i);
 	}
 	
 	vertex_end(vbuff);
@@ -34,7 +34,7 @@ function sCylindricRaycastLine() constructor
 	_u_FullSpinLength = shader_get_uniform(_shader, "u_FullSpinLength");
 	_u_AngleOffsetRad = shader_get_uniform(_shader, "u_AngleOffsetRad");
 	
-	_texture = sprite_get_texture(spr_RaycastLine, 0);
+	_texture = sprite_get_texture(tex_RaycastLine, 0);
 	
 	Draw = function(x, y, z, cylinderRadius, cylinderSpinLen, startPosAngle, rayAngle, rayThickness, raySegmentLen, traceLen)
 	{
@@ -48,6 +48,9 @@ function sCylindricRaycastLine() constructor
 		
 		matrix_get(matrix_world, _matrixSave);
 		
+		var cullsave = gpu_get_cullmode();
+		gpu_set_cullmode(cull_noculling);
+		
 		shader_set(_shader);
 		matrix_set(matrix_world, _localTransformMatrix);
 		shader_set_uniform_matrix(_u_LocalTransform);
@@ -57,6 +60,8 @@ function sCylindricRaycastLine() constructor
 		matrix_set(matrix_world, _matrix);
 		vertex_submit_ext(_vbuff, pr_trianglestrip, _texture, 0, 2 + segmentNum * 2);
 		shader_reset();
+		
+		gpu_set_cullmode(cullsave);
 		
 		matrix_set(matrix_world, _matrixSave);
 	}

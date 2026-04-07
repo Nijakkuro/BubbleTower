@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_Balls",
+  "name":"sh_Balls",
+  "parent":{
+    "name":"_04_Shaders",
+    "path":"folders/_04_Shaders.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

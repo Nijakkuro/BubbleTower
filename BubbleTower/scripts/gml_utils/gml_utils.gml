@@ -11,7 +11,7 @@
 function __singleton_struct()
 {
 	var structName = instanceof(self);
-	var globalName = structName;
+	var globalName = "_" + structName;
 	var globalValue = global[$ globalName];
 	
 	if(!globalValue || is_callable(globalValue) || !is_struct(globalValue))
@@ -270,6 +270,17 @@ function matrix_build_projection_ortho_fix(sizeX, sizeY, znear=1, zfar=16000, sc
 	return mat;
 }
 
+function matrix_build_projection_ortho_fix_out(sizeX, sizeY, znear, zfar, outMatrix)
+{
+	matrix_build_projection_ortho(sizeX, sizeY, znear, zfar, outMatrix);
+	
+	if(os_type==os_linux || os_type==os_gxgames || os_type==os_android || os_browser!=browser_not_a_browser)
+	{
+		outMatrix[@ 5] = -outMatrix[@ 5];
+	}
+}
+
+
 function matrix_build_projection_perspective_fov_fix(fov, aspect, zNear, zFar)
 {
 	var projMat = matrix_build_projection_perspective_fov(fov, aspect, zNear, zFar);
@@ -284,7 +295,7 @@ function matrix_build_projection_perspective_fov_fix(fov, aspect, zNear, zFar)
 function matrix_build_projection_perspective_fov_fix_out(fov, aspect, zNear, zFar, outMatrix)
 {
 	matrix_build_projection_perspective_fov(fov, aspect, zNear, zFar, outMatrix);
-	if(os_type==os_linux || os_type==os_gxgames || os_type==os_android || os_type==os_windows) {
+	if(os_type==os_linux || os_type==os_gxgames || os_type==os_android || os_type==os_windows || os_browser!=browser_not_a_browser) {
 		outMatrix[@ 5] = -outMatrix[@ 5]; // flip Z-Axis to Up-positive/Down-negative
 	}
 }
@@ -397,6 +408,13 @@ function draw_dotted_circle_busy_indicator(cx, cy, radius=64,
 		draw_set_colour(merge_colour(dotColorFrom, dotColorTo, value));
 		draw_circle(dx, dy, r, false);
 	}
+}
+
+// gpu
+
+function gpu_reset_blendmode()
+{
+	gpu_set_blendmode_ext_sepalpha(bm_src_alpha, bm_inv_src_alpha, bm_one, bm_one);
 }
 
 

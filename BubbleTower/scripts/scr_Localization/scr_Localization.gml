@@ -1,4 +1,4 @@
-#macro CLocalizationSettings global.sCLocalizationSettings
+#macro CLocalizationSettings global._sCLocalizationSettings
 CLocalizationSettings = sCLocalizationSettings;
 
 /// @ignore
@@ -14,7 +14,7 @@ function sCLocalizationSettings() : sCOptionGroup("Localization") constructor
 }
 
 
-#macro CLocalization global.sCLocalization
+#macro CLocalization global._sCLocalization
 CLocalization = sCLocalization;
 
 /// @ignore
@@ -107,7 +107,9 @@ function sCLocalization(languages=undefined) constructor
 	}
 	
 	Settings = new sCLocalizationSettings();
+	
 	CLocalizationSettings.Language.BindOnChanged(self, _updateCodeIndex);
+	
 	_updateCodeIndex();
 }
 
