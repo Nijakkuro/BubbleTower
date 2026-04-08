@@ -7,6 +7,7 @@ uniform vec4 u_InstanceData; // location and tex coord-x offset
 
 // varying
 varying vec2 v_vTexCoord;
+varying vec2 v_vNormalTexCoord;
 varying mat3 v_mTBN;
 varying vec3 v_vWorldPos;
 
@@ -36,6 +37,7 @@ void main()
 	gl_Position = gm_Matrices[MATRIX_WORLD_VIEW_PROJECTION] * localPos;
 	
 	v_vTexCoord = vec2(in_TextureCoord.x + u_InstanceData.w * 0.125, in_TextureCoord.y);
+	v_vNormalTexCoord = vec2(v_vTexCoord.x, v_vTexCoord.y + 0.5);
 	
 	mat4 model = gm_Matrices[MATRIX_WORLD];
 	v_mTBN = buildTBNMatrix(model, in_Normal, in_TextureCoord2);

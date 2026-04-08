@@ -1,5 +1,6 @@
 // varying
 varying vec2 v_vTexCoord;
+varying vec2 v_vNormalTexCoord;
 varying mat3 v_mTBN;
 varying vec3 v_vWorldPos;
 
@@ -65,7 +66,7 @@ void applyRimLight(inout vec3 color, vec3 normal, vec3 rimLightColor, vec3 eyeNo
 void main()
 {
 	vec4 de = texture2D( gm_BaseTexture, v_vTexCoord );
-	vec4 ns = texture2D( gm_BaseTexture, v_vTexCoord + vec2(0.0, 0.5) );
+	vec4 ns = texture2D( gm_BaseTexture, v_vNormalTexCoord );
 	
 	vec3 diffuse = de.rgb;
 	vec3 emission = diffuse * (1.0 - de.a);

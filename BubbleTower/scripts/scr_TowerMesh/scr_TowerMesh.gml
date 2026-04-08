@@ -45,6 +45,8 @@ function VertexBufferAddRing(vbuff, z1, r1, z2, r2, tx1, tx2, ty1, ty2, steps=48
 	var j0 = 1;
 	repeat(steps+1)
 	{
+		var angle = i - 45;
+		
 		var j1 = 1 - j0;
 		
 		var v00 = v_0[ j0 ];
@@ -66,11 +68,11 @@ function VertexBufferAddRing(vbuff, z1, r1, z2, r2, tx1, tx2, ty1, ty2, steps=48
 		var norm0 = norm[ j0 ];
 		var norm1 = norm[ j1 ];
 		
-		v10[ 0 ] = lengthdir_x(r1, i);
-		v10[ 1 ] = lengthdir_y(r1, i);
+		v10[ 0 ] = lengthdir_x(r1, angle);
+		v10[ 1 ] = lengthdir_y(r1, angle);
 		
-		v11[ 0 ] = lengthdir_x(r2, i);
-		v11[ 1 ] = lengthdir_y(r2, i);
+		v11[ 0 ] = lengthdir_x(r2, angle);
+		v11[ 1 ] = lengthdir_y(r2, angle);
 		
 		var quarter = ((i-step) div 90) * 0.25;
 		
@@ -89,11 +91,11 @@ function VertexBufferAddRing(vbuff, z1, r1, z2, r2, tx1, tx2, ty1, ty2, steps=48
 		t10[ 0 ] = txr;
 		t11[ 0 ] = txr2;
 		
-		tan1[ 0 ] = -dsin(i);
-		tan1[ 1 ] = -dcos(i);
+		tan1[ 0 ] = -dsin(angle);
+		tan1[ 1 ] = -dcos(angle);
 		
-		btan1[ 0 ] = lengthdir_x(btan2dlen, i);
-		btan1[ 1 ] = lengthdir_y(btan2dlen, i);
+		btan1[ 0 ] = lengthdir_x(btan2dlen, angle);
+		btan1[ 1 ] = lengthdir_y(btan2dlen, angle);
 		
 		crossProduct(tan1, btan1, norm1);
 		

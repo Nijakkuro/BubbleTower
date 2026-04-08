@@ -5,6 +5,7 @@ attribute vec3 in_TextureCoord2; // tangent
 
 // varying
 varying vec2 v_vTexCoord;
+varying vec2 v_vNormalTexCoord;
 varying mat3 v_mTBN;
 varying vec3 v_vWorldPos;
 
@@ -34,6 +35,7 @@ void main()
 	gl_Position = gm_Matrices[MATRIX_WORLD_VIEW_PROJECTION] * localPos;
 	
 	v_vTexCoord = in_TextureCoord;
+	v_vNormalTexCoord = vec2(v_vTexCoord.x + 0.5, v_vTexCoord.y);
 	
 	mat4 model = gm_Matrices[MATRIX_WORLD];
 	v_mTBN = buildTBNMatrix(model, in_Normal, in_TextureCoord2);

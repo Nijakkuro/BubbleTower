@@ -28,7 +28,7 @@ show_message(str);
 clipboard_set_text(string_trim(str));
 */
 
-_tower = new sTowerMesh(_cylinderZ2, _cylinderZ1, 64, _cylinderRadius, _cylinderRadius * 1.5);
+_tower = new sTowerMesh(_cylinderZ2, _cylinderZ1, 64, _cylinderRadius, _cylinderRadius + _gameField._ballDiameter * 1.5 );
 
 _drawSpheres = function()
 {

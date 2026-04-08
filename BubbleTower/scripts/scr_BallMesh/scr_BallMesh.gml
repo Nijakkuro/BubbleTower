@@ -21,12 +21,12 @@ function sBallMesh() constructor {
 	
 	for(var i=0; i<stepCount; i++) {
 		var angle1 = step * i;
-		var lx1 = lengthdir_x(s, angle1);
-		var ly1 = lengthdir_y(s, angle1);
+		var lx1 = lengthdir_x(s, angle1 - 90);
+		var ly1 = lengthdir_y(s, angle1 - 90);
 		
 		var angle2 = step * (i+1);
-		var lx2 = lengthdir_x(s, angle2);
-		var ly2 = lengthdir_y(s, angle2);
+		var lx2 = lengthdir_x(s, angle2 - 90);
+		var ly2 = lengthdir_y(s, angle2 - 90);
 		
 		var angle3 = step * (i+0.5);
 		
@@ -34,14 +34,14 @@ function sBallMesh() constructor {
 		var tx2 = ( ( (i<halfStepCount ? angle2 : angle2-180) / 180 ) * (60/64) + (2/64) ) * 0.125;
 		var tx3 = ( ( (i<halfStepCount ? angle3 : angle3-180) / 180 ) * (60/64) + (2/64) ) * 0.125;
 		
-		var nx1 = dcos(angle1);
-		var ny1 = -dsin(angle1);
+		var nx1 = dcos(angle1 - 90);
+		var ny1 = -dsin(angle1 - 90);
 		
-		var nx2 = dcos(angle2);
-		var ny2 = -dsin(angle2);
+		var nx2 = dcos(angle2 - 90);
+		var ny2 = -dsin(angle2 - 90);
 		
-		var nx3 = dcos(angle3);
-		var ny3 = -dsin(angle3);
+		var nx3 = dcos(angle3 - 90);
+		var ny3 = -dsin(angle3 - 90);
 		
 		var tanX1 = ny1;
 		var tanY1 = -nx1;
