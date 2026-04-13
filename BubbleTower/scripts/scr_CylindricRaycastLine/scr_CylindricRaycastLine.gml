@@ -33,6 +33,7 @@ function sCylindricRaycastLine() constructor
 	_u_Radius = shader_get_uniform(_shader, "u_Radius");
 	_u_FullSpinLength = shader_get_uniform(_shader, "u_FullSpinLength");
 	_u_AngleOffsetRad = shader_get_uniform(_shader, "u_AngleOffsetRad");
+	_u_Time = shader_get_uniform(_shader, "u_Time");
 	
 	_texture = sprite_get_texture(tex_RaycastLine, 0);
 	
@@ -57,6 +58,7 @@ function sCylindricRaycastLine() constructor
 		shader_set_uniform_f(_u_Radius, cylinderRadius);
 		shader_set_uniform_f(_u_FullSpinLength, cylinderSpinLen);
 		shader_set_uniform_f(_u_AngleOffsetRad, degtorad(startPosAngle));
+		shader_set_uniform_f(_u_Time, CTime.CurrentTime);
 		matrix_set(matrix_world, _matrix);
 		vertex_submit_ext(_vbuff, pr_trianglestrip, _texture, 0, 2 + segmentNum * 2);
 		shader_reset();

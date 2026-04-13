@@ -20,7 +20,8 @@
   "height":128,
   "HTile":false,
   "layers":[
-    {"$GMImageLayer":"","%Name":"88b5eb2b-bf64-40cc-ad23-7ab689e3f8ce","blendMode":0,"displayName":"Layer 1","isLocked":false,"name":"88b5eb2b-bf64-40cc-ad23-7ab689e3f8ce","opacity":100.0,"resourceType":"GMImageLayer","resourceVersion":"2.0","visible":true,},
+    {"$GMImageLayer":"","%Name":"88b5eb2b-bf64-40cc-ad23-7ab689e3f8ce","blendMode":0,"displayName":"Layer 1","isLocked":false,"name":"88b5eb2b-bf64-40cc-ad23-7ab689e3f8ce","opacity":100.0,"resourceType":"GMImageLayer","resourceVersion":"2.0","visible":false,},
+    {"$GMImageLayer":"","%Name":"218bb7b8-2906-4023-927c-b61c0c764426","blendMode":0,"displayName":"Layer 2","isLocked":false,"name":"218bb7b8-2906-4023-927c-b61c0c764426","opacity":100.0,"resourceType":"GMImageLayer","resourceVersion":"2.0","visible":true,},
     {"$GMImageLayer":"","%Name":"ddfe4402-a243-4fbb-933c-13523e428630","blendMode":0,"displayName":"default","isLocked":false,"name":"ddfe4402-a243-4fbb-933c-13523e428630","opacity":100.0,"resourceType":"GMImageLayer","resourceVersion":"2.0","visible":true,},
   ],
   "name":"tex_Balls",

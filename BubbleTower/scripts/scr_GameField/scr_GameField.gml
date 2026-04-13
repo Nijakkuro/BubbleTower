@@ -16,10 +16,9 @@ global.LUT_hex_cell_not_even = [
 	[ -1,  1 ]
 ];
 
-function sBall(index, color, colorIndex=0) constructor
+function sBall(index, colorIndex=0) constructor
 {
 	Index = index;
-	Color = color;
 	ColorIndex = colorIndex;
 	Locked = false;
 	OffsetX = 0;
@@ -61,6 +60,10 @@ function sBall(index, color, colorIndex=0) constructor
 	}
 }
 
+function sCannon() constructor {
+	
+}
+
 global.game_field = undefined;
 function sGameField() constructor {
 	global.game_field = self;
@@ -87,6 +90,26 @@ function sGameField() constructor {
 	_cylinderRadius = _wrapRadius - _ballRadius;
 	_cylinderHeight = _fieldH + _ballDiameter * 2;
 	
+	_ballsToDraw = array_create(_cellNumX * _cellNumY, -1);
+	_ballsToDrawNum = 0;
+	
+	_updateBallsToDraw = function() {
+		var i = 0;
+		var j = 0;
+		var grid = _grid;
+		var positionsLUTAngle = _positionsLUTAngle;
+		var cannonPosAngle = _cannonPosAngle;
+		var ballsToDraw = _ballsToDraw;
+		repeat(_cellNumTotal) {
+			if(grid[i]!=undefined && abs(angle_difference(positionsLUTAngle[i], cannonPosAngle)) < 135) {
+				ballsToDraw[j] = i;
+				j++;
+			}
+			i++;
+		}
+		_ballsToDrawNum = j;
+	}
+	
 	_grid = array_create(_cellNumTotal, undefined);
 	
 	
@@ -97,8 +120,7 @@ function sGameField() constructor {
 		for(var i=0; i<cellNum; i++) {
 			if(irandom(1)) {
 				var colorIndex = irandom(4);
-				var color = colors[colorIndex];
-				_grid[i] = new sBall(i, color, colorIndex);
+				_grid[i] = new sBall(i, colorIndex);
 			}
 		}
 	}
@@ -121,8 +143,12 @@ function sGameField() constructor {
 	
 	
 	// cannon
+	_cannonPosAngle = 0;
 	_cannonX = 0;
 	_cannonY = _cylinderHeight - _ballRadius;
+	_cannonPos3D_X = 0;
+	_cannonPos3D_Y = 0;
+	_cannonPos3D_Z = -_ballDiameter * 1.5;
 	_cannonAngle = 0;
 	_cannonTraceLength = 100;
 	_cannonTraceResultX = 0;
@@ -130,7 +156,10 @@ function sGameField() constructor {
 	_cannonTraceCellIndex = -1;
 	
 	SetCannonPositionByAngle = function(angle) {
-		_cannonX = angle_normalize360(angle) / 360 * _fieldW;
+		_cannonPosAngle = angle_normalize360(angle);
+		_cannonX = _cannonPosAngle / 360 * _fieldW;
+		_cannonPos3D_X = lengthdir_x(_wrapRadius, _cannonPosAngle);
+		_cannonPos3D_Y = lengthdir_y(_wrapRadius, _cannonPosAngle);
 	}
 	
 	SetCannonAngleByTargetPos = function(px, py) {
@@ -249,7 +278,14 @@ function sGameField() constructor {
 			return true;
 		}
 		
-		return false;
+		bestHitY = 0;
+		var bestHitX = startX + dirX * (startY - bestHitY);
+		_cannonTraceResultX = bestHitX;
+		_cannonTraceResultY = bestHitY;
+		_cannonTraceLength = point_distance(startX, startY, bestHitX, bestHitY);
+		_cannonTraceCellIndex = _snapToIndex(bestHitX, bestHitY);
+		
+		return true;
 	}
 	
 	GetCannonAngle = function() { return _cannonAngle; }
@@ -279,6 +315,7 @@ function sGameField() constructor {
 	}
 	
 	// positions LUT
+	_positionsLUTAngle = array_create(_cellNumTotal);
 	_positionsLUT2D_X = array_create(_cellNumTotal);
 	_positionsLUT2D_Y = array_create(_cellNumTotal);
 	_positionsLUT3D_X = array_create(_cellNumTotal);
@@ -293,6 +330,7 @@ function sGameField() constructor {
 				var px = i * _ballStepX + pxOffset;
 				_positionsLUT2D_X[k] = px;
 				_positionsLUT2D_Y[k] = py;
+				_positionsLUTAngle[k] = wrap(px/_fieldW * 360, 0, 360);
 				k++;
 			}
 		}
@@ -335,6 +373,8 @@ function sGameField() constructor {
 	
 	_tmpArr = [ 0, 0, 0 ];
 	Step = function() {
+		_updateBallsToDraw();
+		
 		if(_cannonShot) {
 			var d = point_distance(_cannonBallPos2D_X, _cannonBallPos2D_Y, _cannonBallTargetX, _cannonBallTargetY);
 			if(d <= _cannonBallSpeed) {
@@ -378,7 +418,7 @@ function sGameField() constructor {
 		}
 	}
 	
-	Draw = function(px, py)
+	DrawDebug = function(px, py)
 	{
 		if(display_get_gui_width() < 1200)
 		{
@@ -402,7 +442,8 @@ function sGameField() constructor {
 			var ball = _grid[i];
 			if(ball!=undefined)
 			{
-				draw_set_color(ball.Color);
+				//color = color_from_color_index(ball.ColorIndex);
+				//draw_set_color(color);
 				var posX = (_positionsLUT2D_X[i] + ball.OffsetX) * scl;
 				var posY = (_positionsLUT2D_Y[i] + ball.OffsetY) * scl;
 				draw_circle(px + posX, py + posY, r, false);
@@ -514,141 +555,5 @@ function sGameField() constructor {
 		draw_set_colour(c_maroon);
 		draw_text(4, 4, $"index = {i}");
 	}
-	
-	/*
-	WrapCylinderRayCast = function(ox, oy, oz, vx, vy, vz, outResult)
-	{
-		static col = [ 0, 0, 0, 0 ];
-		
-		var dist2d = point_distance(0, 0, vx, vy);
-		if(dist2d<0.0000001) {
-			return false;
-		}
-		
-		if(line_circle_collision_point(ox, oy, ox + vx, oy + vy, 0, 0, _wrapRadius, col)) {
-			outResult[@ 0] = col[0];
-			outResult[@ 1] = col[1];
-			outResult[@ 2] = oz + point_distance(ox, oy, col[0], col[1]) * (vz / dist2d);
-			return true;
-		}
-		return false;
-	}
-	*/
-}
-
-function matrix_transform_vertex_fix(m, x, y, z, w, out)
-{
-	if(os_browser==browser_not_a_browser) {
-		return matrix_transform_vertex(m, x, y, z, w, out);
-	}
-	
-	out[@ 0] = m[0] * x + m[4] * y + m[ 8] * z + m[12] * w;
-	out[@ 1] = m[1] * x + m[5] * y + m[ 9] * z + m[13] * w;
-	out[@ 2] = m[2] * x + m[6] * y + m[10] * z + m[14] * w;
-	out[@ 3] = m[3] * x + m[7] * y + m[11] * z + m[15] * w;
-}
-
-function screen_to_world_ray_perspective(x, y, viewMatrix, projMatrix, screenW, screenH, outResult)
-{
-	static mViewProj = matrix_build_identity();
-	matrix_multiply(viewMatrix, projMatrix, mViewProj);
-	
-	static mInvViewProj = matrix_build_identity();
-	matrix_inverse(mViewProj, mInvViewProj);
-	
-	var nx = ( 2.0 * x / screenW ) - 1.0;
-	var ny = ( 2.0 * y / screenH ) - 1.0;
-	
-	static v0 = [ 0, 0, 0, 0 ];
-	matrix_transform_vertex_fix(mInvViewProj, nx, ny, 0, 1, v0);
-	v0[0] /= v0[3];
-	v0[1] /= v0[3];
-	v0[2] /= v0[3];
-	
-	static v1 = [ 0, 0, 0, 0 ];
-	matrix_transform_vertex_fix(mInvViewProj, nx, ny, 1, 1, v1);
-	v1[0] /= v1[3];
-	v1[1] /= v1[3];
-	v1[2] /= v1[3];
-	
-	// origin at near clip plane
-	outResult[@ 0] = v0[0];
-	outResult[@ 1] = v0[1];
-	outResult[@ 2] = v0[2];
-	
-	// normalized direction vector
-	var d = point_distance_3d(v0[0], v0[1], v0[2], v1[0], v1[1], v1[2]);
-	outResult[@ 3] = ( v1[0] - v0[0] ) / d;
-	outResult[@ 4] = ( v1[1] - v0[1] ) / d;
-	outResult[@ 5] = ( v1[2] - v0[2] ) / d;
-}
-
-function point_line_projection_2d(px, py, x1, y1, x2, y2, outResult)
-{
-	var l = point_distance(x1, y1, x2, y2);
-	if(l<0.0000001) {
-		return false;
-	}
-	
-	var ldx = (x2 - x1) / l;
-	var ldy = (y2 - y1) / l;
-	var k = dot_product(px - x1,    py - y1, ldx, ldy);
-	
-	outResult[@ 0] = x1 + ldx * k;
-	outResult[@ 1] = y1 + ldy * k;
-	return true;
-}
-
-function line_circle_collision_point(x1, y1, x2, y2, cx, cy, cr, outResult)
-{
-	static p = [ 0, 0 ];
-	if(point_line_projection_2d(cx, cy, x1, y1, x2, y2, p)) {
-		var d = point_distance(cx, cy, p[0], p[1]);
-		if(d<=cr) {
-			var b = sqrt(cr*cr - d*d);
-			var l = point_distance(x1, y1, x2, y2);
-			if(l>0.0000001) {
-				var vx = (x2 - x1)/l;
-				var vy = (y2 - y1)/l;
-				outResult[@ 0] = p[0] - vx*b;
-				outResult[@ 1] = p[1] - vy*b;
-				outResult[@ 2] = p[0] + vx*b;
-				outResult[@ 3] = p[1] + vy*b;
-				return true;
-			}
-		}
-	}
-	
-	return false;
-}
-
-function ray_circle_collision_point_dist(ox, oy, dx, dy, cx, cy, crSq) {
-	// Вектор от центра окружности к началу луча: F = O - C
-	var fx = ox - cx;
-	var fy = oy - cy;
-	
-	// Коэффициенты квадратного уравнения t^2 + 2*b*t + c = 0
-	// b = скалярное произведение (F · D)
-	//var b = fx * dx + fy * dy;
-	var b = dot_product(fx, fy, dx, dy);
-	
-	// c = |F|^2 - r^2
-	//var c = fx * fx + fy * fy - crSq;
-	var c = dot_product(fx, fy, fx, fy) - crSq;
-	
-	// Дискриминант (упрощенный, т.к. a=1)
-	// k = b^2 - c
-	var k = b * b - c;
-	
-	// Если дискриминант отрицательный, пересечений нет
-	if (k < 0) return -1;
-	
-	var sqrtK = sqrt(k);
-	
-	// Находим корни. Нам нужен наименьший t >= 0.
-	// t1 = -b - sqrtK
-	// t2 = -b + sqrtK
-	// Поскольку sqrtK >= 0, t1 всегда <= t2. Проверяем t1 первым.
-	return -b - sqrtK;
 }
 

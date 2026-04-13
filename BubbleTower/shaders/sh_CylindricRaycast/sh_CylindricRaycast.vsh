@@ -6,6 +6,7 @@ uniform mat4 u_LocalTransform;
 uniform float u_AngleOffsetRad;
 uniform float u_Radius;
 uniform float u_FullSpinLength;
+uniform float u_Time;
 
 const float TWO_PI = 6.28318530718;
 
@@ -20,6 +21,6 @@ void main()
 	
 	gl_Position = gm_Matrices[MATRIX_WORLD_VIEW_PROJECTION] * vec4(localPos.xyz, 1.0);
 	
-	v_vTexcoord = vec2(in_Position.y, -in_Position.z);
+	v_vTexcoord = vec2(in_Position.y, -in_Position.z * 0.5 + u_Time * 2.0);
 }
 

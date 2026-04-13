@@ -131,7 +131,12 @@ function sTowerMesh(z1, z2, addHeight, r1, r2) constructor {
 	var tx3 = tx1 + 0.25;
 	var tx4 = tx2 + 0.25;
 	
-	VertexBufferAddRing(vbuff, z1 + addHeight, r2, z1, r2, tx3, tx4, 0, 192/512);
+	var r3 = r2 - 2;
+	VertexBufferAddRing(vbuff, z1 + addHeight, r3, z1 + 10, r3, tx3, tx4, 0, (192-32)/512);
+	
+	VertexBufferAddRing(vbuff, z1 + 10, r3, z1 + 10, r2, tx3, tx4, 0, 0);
+	
+	VertexBufferAddRing(vbuff, z1 + 10, r2, z1, r2, tx3, tx4, (192-32)/512, 192/512);
 	
 	VertexBufferAddRing(vbuff, z1, r2, z1, r1, tx3, tx4, 192/512, 248/512);
 	
@@ -139,7 +144,9 @@ function sTowerMesh(z1, z2, addHeight, r1, r2) constructor {
 	
 	VertexBufferAddRing(vbuff, z2, r1, z2, r2, tx3, tx4, 264/512, 320/512);
 	
-	VertexBufferAddRing(vbuff, z2, r2, z2 - addHeight, r2, tx3, tx4, 320/512, 1);
+	VertexBufferAddRing(vbuff, z2, r2, z2 - 10, r2, tx3, tx4, 320/512, (320+32)/512);
+	
+	VertexBufferAddRing(vbuff, z2 - 10, r3, z2 - addHeight, r3, tx3, tx4, (320+32)/512, 1);
 	
 	vertex_end(vbuff);
 	vertex_freeze(vbuff);

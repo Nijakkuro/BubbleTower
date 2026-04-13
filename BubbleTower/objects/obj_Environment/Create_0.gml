@@ -1,4 +1,4 @@
 _bg = new sSphericalBackground();
 
-AmbientColor = [ 0.5, 0.5, 0.5 ];
+AmbientColor = [ 135/255, 105/255, 86/255 ];
 

@@ -5,7 +5,7 @@ _cleared = false;
 
 CastShadows = true;
 Forward = [ 1, 0, 0, 1 ];
-Color = [ 1, 1, 1 ];
+Color = [ 0.9, 0.85, 0.8 ];
 NearClip = 16;
 FarClip = 4096;
 AreaSizeX = 128;

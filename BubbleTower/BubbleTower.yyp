@@ -77,6 +77,7 @@
     {"id":{"name":"obj_Tower","path":"objects/obj_Tower/obj_Tower.yy",},},
     {"id":{"name":"room_Init","path":"rooms/room_Init/room_Init.yy",},},
     {"id":{"name":"room_Test","path":"rooms/room_Test/room_Test.yy",},},
+    {"id":{"name":"_scr_DevUtils","path":"scripts/_scr_DevUtils/_scr_DevUtils.yy",},},
     {"id":{"name":"gml_dispatcher","path":"scripts/gml_dispatcher/gml_dispatcher.yy",},},
     {"id":{"name":"gml_utils","path":"scripts/gml_utils/gml_utils.yy",},},
     {"id":{"name":"scr_Audio","path":"scripts/scr_Audio/scr_Audio.yy",},},

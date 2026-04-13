@@ -32,56 +32,50 @@ _tower = new sTowerMesh(_cylinderZ2, _cylinderZ1, 64, _cylinderRadius, _cylinder
 
 _drawSpheres = function()
 {
-	//return;
-	
-	_sphere.DrawInstancesBegin();
-	
-	var outPos = [0, 0];
-	
-	var s = (_gameField._ballDiameter - 0.25) / 100;
-	var n = _gameField._cellNumTotal;
 	var i = 0;
 	var grid = _gameField._grid;
 	var sphere = _sphere;
-	repeat(n) {
-		var ball = grid[i];
-		if(ball!=undefined) {
-			sphere.DrawInstance(ball.Pos3D_X, ball.Pos3D_Y, ball.Pos3D_Z, ball.ColorIndex);
-		}
+	
+	sphere.DrawInstancesBegin();
+	
+	var ballsToDraw = _gameField._ballsToDraw;
+	var ballsToDrawNum = _gameField._ballsToDrawNum;
+	repeat(ballsToDrawNum) {
+		var ball = grid[ballsToDraw[i]];
+		sphere.DrawInstance(ball.Pos3D_X, ball.Pos3D_Y, ball.Pos3D_Z, ball.ColorIndex);
 		i++;
 	}
 	
-	_sphere.DrawInstancesEnd();
+	sphere.DrawInstancesEnd();
 	
-	var px = -lengthdir_x(_gameField._wrapRadius, obj_Camera.ZAngle);
-	var py = -lengthdir_y(_gameField._wrapRadius, obj_Camera.ZAngle);
-	_sphere.Draw(px, py, -_gameField._ballDiameter * 1.5, 0);
+	var cx = _gameField._cannonPos3D_X;
+	var cy = _gameField._cannonPos3D_Y;
+	var cz = _gameField._cannonPos3D_Z;
+	sphere.Draw(cx, cy, cz, 0);
 }
 
 _drawSpheresDepth = function()
 {
-	_sphere.DrawDepthInstancesBegin();
-	
-	var outPos = [0, 0];
-	
-	var s = (_gameField._ballDiameter - 0.25) / 100;
-	var n = _gameField._cellNumTotal;
 	var i = 0;
 	var grid = _gameField._grid;
 	var sphere = _sphere;
-	repeat(n) {
-		var ball = grid[i];
-		if(ball!=undefined) {
-			sphere.DrawDepthInstance(ball.Pos3D_X, ball.Pos3D_Y, ball.Pos3D_Z);
-		}
+	
+	sphere.DrawDepthInstancesBegin();
+	
+	var ballsToDraw = _gameField._ballsToDraw;
+	var ballsToDrawNum = _gameField._ballsToDrawNum;
+	repeat(ballsToDrawNum) {
+		var ball = grid[ballsToDraw[i]];
+		sphere.DrawDepthInstance(ball.Pos3D_X, ball.Pos3D_Y, ball.Pos3D_Z);
 		i++;
 	}
 	
-	_sphere.DrawDepthInstancesEnd();
+	sphere.DrawDepthInstancesEnd();
 	
-	var px = -lengthdir_x(_gameField._wrapRadius, obj_Camera.ZAngle);
-	var py = -lengthdir_y(_gameField._wrapRadius, obj_Camera.ZAngle);
-	_sphere.DrawDepth(px, py, -_gameField._ballDiameter * 1.5);
+	var cx = _gameField._cannonPos3D_X;
+	var cy = _gameField._cannonPos3D_Y;
+	var cz = _gameField._cannonPos3D_Z;
+	sphere.DrawDepth(cx, cy, cz);
 }
 
 

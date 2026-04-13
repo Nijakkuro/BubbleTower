@@ -1,102 +1,117 @@
-function MakeTowerTexture()
+
+function matrix_transform_vertex_fix(m, x, y, z, w, out)
 {
-	var spr_add = function(name, w, h)
-	{
-		return sprite_add($"tower/{name}", 1, false, false, 0, 0);
+	if(os_browser==browser_not_a_browser) {
+		return matrix_transform_vertex(m, x, y, z, w, out);
 	}
 	
-	var tower_d_0 = spr_add("tower_d_0.png", 240, 512);
-	var tower_d_1 = spr_add("tower_d_1.png", 240, 192);
-	var tower_d_2 = spr_add("tower_d_2.png", 240, 56);
-	var tower_d_3 = spr_add("tower_d_3.png", 240, 56);
-	var tower_d_4 = spr_add("tower_d_4.png", 240, 192);
+	out[@ 0] = m[0] * x + m[4] * y + m[ 8] * z + m[12] * w;
+	out[@ 1] = m[1] * x + m[5] * y + m[ 9] * z + m[13] * w;
+	out[@ 2] = m[2] * x + m[6] * y + m[10] * z + m[14] * w;
+	out[@ 3] = m[3] * x + m[7] * y + m[11] * z + m[15] * w;
+}
+
+function screen_to_world_ray_perspective(x, y, viewMatrix, projMatrix, screenW, screenH, outResult)
+{
+	static mViewProj = matrix_build_identity();
+	matrix_multiply(viewMatrix, projMatrix, mViewProj);
 	
-	var tower_e_0 = spr_add("tower_e_0.png", 240, 512);
-	var tower_e_1 = spr_add("tower_e_1.png", 240, 192);
-	var tower_e_2 = spr_add("tower_e_2.png", 240, 56);
-	var tower_e_3 = spr_add("tower_e_3.png", 240, 56);
-	var tower_e_4 = spr_add("tower_e_4.png", 240, 192);
+	static mInvViewProj = matrix_build_identity();
+	matrix_inverse(mViewProj, mInvViewProj);
 	
-	var tower_n_0 = spr_add("tower_n_0.png", 240, 512);
-	var tower_n_1 = spr_add("tower_n_1.png", 240, 192);
-	var tower_n_2 = spr_add("tower_n_2.png", 240, 56);
-	var tower_n_3 = spr_add("tower_n_3.png", 240, 56);
-	var tower_n_4 = spr_add("tower_n_4.png", 240, 192);
+	var nx = ( 2.0 * x / screenW ) - 1.0;
+	var ny = ( 2.0 * y / screenH ) - 1.0;
 	
-	var tower_s_0 = spr_add("tower_s_0.png", 240, 512);
-	var tower_s_1 = spr_add("tower_s_1.png", 240, 192);
-	var tower_s_2 = spr_add("tower_s_2.png", 240, 56);
-	var tower_s_3 = spr_add("tower_s_3.png", 240, 56);
-	var tower_s_4 = spr_add("tower_s_4.png", 240, 192);
+	static v0 = [ 0, 0, 0, 0 ];
+	matrix_transform_vertex_fix(mInvViewProj, nx, ny, 0, 1, v0);
+	v0[0] /= v0[3];
+	v0[1] /= v0[3];
+	v0[2] /= v0[3];
 	
-	var draw_tower_013 = function(spr, ox, oy)
-	{
-		draw_sprite_part(spr, 0, 240-8, 0, 8, 512, ox, oy);
-		draw_sprite(spr, 0, ox+8, oy);
-		draw_sprite_part(spr, 0, 0, 0, 8, 512, ox+240+8, oy);
+	static v1 = [ 0, 0, 0, 0 ];
+	matrix_transform_vertex_fix(mInvViewProj, nx, ny, 1, 1, v1);
+	v1[0] /= v1[3];
+	v1[1] /= v1[3];
+	v1[2] /= v1[3];
+	
+	// origin at near clip plane
+	outResult[@ 0] = v0[0];
+	outResult[@ 1] = v0[1];
+	outResult[@ 2] = v0[2];
+	
+	// normalized direction vector
+	var d = point_distance_3d(v0[0], v0[1], v0[2], v1[0], v1[1], v1[2]);
+	outResult[@ 3] = ( v1[0] - v0[0] ) / d;
+	outResult[@ 4] = ( v1[1] - v0[1] ) / d;
+	outResult[@ 5] = ( v1[2] - v0[2] ) / d;
+}
+
+function point_line_projection_2d(px, py, x1, y1, x2, y2, outResult)
+{
+	var l = point_distance(x1, y1, x2, y2);
+	if(l<0.0000001) {
+		return false;
 	}
 	
-	var draw_tower_2 = function(spr, ox, oy)
-	{
-		draw_sprite_part(spr, 0, 240-8, 0, 8, 512, ox, oy);
-		draw_sprite(spr, 0, ox+8, oy);
-		draw_sprite_part(spr, 0, 0, 0, 8, 512, ox+240+8, oy);
-		
-		var sprH = sprite_get_height(spr);
-		
-		for(var i=0; i<8; i++)
-		{
-			draw_sprite_part(spr, 0, 240-8, sprH-1, 8, 1, ox, oy + sprH + i);
-			draw_sprite_part(spr, 0, 0, sprH-1, 240, 1, ox+8, oy + sprH + i);
-			draw_sprite_part(spr, 0, 0, sprH-1, 8, 1, ox+240+8, oy + sprH + i);
+	var ldx = (x2 - x1) / l;
+	var ldy = (y2 - y1) / l;
+	var k = dot_product(px - x1,    py - y1, ldx, ldy);
+	
+	outResult[@ 0] = x1 + ldx * k;
+	outResult[@ 1] = y1 + ldy * k;
+	return true;
+}
+
+function line_circle_collision_point(x1, y1, x2, y2, cx, cy, cr, outResult)
+{
+	static p = [ 0, 0 ];
+	if(point_line_projection_2d(cx, cy, x1, y1, x2, y2, p)) {
+		var d = point_distance(cx, cy, p[0], p[1]);
+		if(d<=cr) {
+			var b = sqrt(cr*cr - d*d);
+			var l = point_distance(x1, y1, x2, y2);
+			if(l>0.0000001) {
+				var vx = (x2 - x1)/l;
+				var vy = (y2 - y1)/l;
+				outResult[@ 0] = p[0] - vx*b;
+				outResult[@ 1] = p[1] - vy*b;
+				outResult[@ 2] = p[0] + vx*b;
+				outResult[@ 3] = p[1] + vy*b;
+				return true;
+			}
 		}
 	}
 	
-	var draw_tower_4 = function(spr, ox, oy)
-	{
-		for(var i=0; i<8; i++)
-		{
-			draw_sprite_part(spr, 0, 240-8, 0, 8, 1, ox, oy + i);
-			draw_sprite_part(spr, 0, 0, 0, 240, 1, ox+8, oy + i);
-			draw_sprite_part(spr, 0, 0, 0, 8, 1, ox+240+8, oy + i);
-		}
-		
-		draw_sprite_part(spr, 0, 240-8, 0, 8, 512, ox, oy + 8);
-		draw_sprite(spr, 0, ox+8, oy + 8);
-		draw_sprite_part(spr, 0, 0, 0, 8, 512, ox+240+8, oy + 8);
-	}
+	return false;
+}
+
+function ray_circle_collision_point_dist(ox, oy, dx, dy, cx, cy, crSq) {
+	// Вектор от центра окружности к началу луча: F = O - C
+	var fx = ox - cx;
+	var fy = oy - cy;
 	
-	var draw_part = function(draw_func, spr_rgb, spr_a, ox, oy)
-	{
-		gpu_set_colourwriteenable(true, true, true, false);
-		draw_func(spr_rgb, ox, oy);
-		gpu_set_colourwriteenable(false, false, false, true);
-		shader_set(sh_InvRedToAlpha);
-		draw_func(spr_a, ox, oy);
-		shader_reset();
-		gpu_set_colourwriteenable(true, true, true, true);
-	}
+	// Коэффициенты квадратного уравнения t^2 + 2*b*t + c = 0
+	// b = скалярное произведение (F · D)
+	//var b = fx * dx + fy * dy;
+	var b = dot_product(fx, fy, dx, dy);
 	
-	var surf = surface_create(1024, 512);
-	surface_set_target(surf);
-	draw_clear_alpha(0, 0);
-	gpu_set_blendmode_ext_sepalpha(bm_one, bm_zero, bm_one, bm_zero);
+	// c = |F|^2 - r^2
+	//var c = fx * fx + fy * fy - crSq;
+	var c = dot_product(fx, fy, fx, fy) - crSq;
 	
-	draw_part(draw_tower_013, tower_d_0, tower_e_0, 0, 0);
-	draw_part(draw_tower_013, tower_d_1, tower_e_1, 256, 0);
-	draw_part(draw_tower_2,   tower_d_2, tower_e_2, 256, 192);
-	draw_part(draw_tower_4,   tower_d_3, tower_e_3, 256, 256);
-	draw_part(draw_tower_013, tower_d_4, tower_e_4, 256, 320);
+	// Дискриминант (упрощенный, т.к. a=1)
+	// k = b^2 - c
+	var k = b * b - c;
 	
-	draw_part(draw_tower_013, tower_n_0, tower_s_0, 512 + 0, 0);
-	draw_part(draw_tower_013, tower_n_1, tower_s_1, 512 + 256, 0);
-	draw_part(draw_tower_2,   tower_n_2, tower_s_2, 512 + 256, 192);
-	draw_part(draw_tower_4,   tower_n_3, tower_s_3, 512 + 256, 256);
-	draw_part(draw_tower_013, tower_n_4, tower_s_4, 512 + 256, 320);
+	// Если дискриминант отрицательный, пересечений нет
+	if (k < 0) return -1;
 	
-	gpu_reset_blendmode();
-	surface_reset_target();
+	var sqrtK = sqrt(k);
 	
-	surface_save(surf, "tower.png");
+	// Находим корни. Нам нужен наименьший t >= 0.
+	// t1 = -b - sqrtK
+	// t2 = -b + sqrtK
+	// Поскольку sqrtK >= 0, t1 всегда <= t2. Проверяем t1 первым.
+	return -b - sqrtK;
 }
 
