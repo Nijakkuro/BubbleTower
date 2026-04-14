@@ -69,6 +69,11 @@ function sCylindricRaycastLine() constructor
 	}
 }
 
+function CylindricRaycastLineMesh()
+{
+	static inst = new sCylindricRaycastLine();
+	return inst;
+}
 
 function matrix_build_rotation(rx, ry, rz)
 {

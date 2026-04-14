@@ -16,8 +16,10 @@ global.LUT_hex_cell_not_even = [
 	[ -1,  1 ]
 ];
 
-function sBall(index, colorIndex=0) constructor
+function sBall(gameField, index, colorIndex=0) constructor
 {
+	GameField = gameField;
+	
 	Index = index;
 	ColorIndex = colorIndex;
 	Locked = false;
@@ -32,13 +34,12 @@ function sBall(index, colorIndex=0) constructor
 	
 	Moved = true;
 	
-	Step = function()
-	{
+	Step = function() {
 		static outPos = [ 0, 0, 0 ];
-		if(self.Moved)
+		if(Moved)
 		{
-			var i = self.Index;
-			var gf = global.game_field;
+			var i = Index;
+			var gf = GameField;
 			var px = gf._positionsLUT2D_X[i];
 			var py = gf._positionsLUT2D_Y[i];
 			
@@ -49,132 +50,57 @@ function sBall(index, colorIndex=0) constructor
 			{
 				OffsetX = 0;
 				OffsetY = 0;
-				self.Moved = false;
+				Moved = false;
 			}
 			
-			gf.Convert2DTo3D(px + self.OffsetX, py + self.OffsetY, outPos);
-			self.Pos3D_X = outPos[0];
-			self.Pos3D_Y = outPos[1];
-			self.Pos3D_Z = outPos[2];
+			gf.Convert2DTo3D(px + OffsetX, py + OffsetY, outPos);
+			Pos3D_X = outPos[0];
+			Pos3D_Y = outPos[1];
+			Pos3D_Z = outPos[2];
 		}
 	}
 }
 
-function sCannon() constructor {
+function sGameFieldCannon(gameField) constructor {
+	_gameField = gameField;
 	
-}
-
-global.game_field = undefined;
-function sGameField() constructor {
-	global.game_field = self;
-	//      (1)(2)
-	//    (6)(0)(3)
-	//     (5)(4)
+	_posAngle = 0;
+	_pos2D = new sVector2(0, _gameField._cylinderHeight - _gameField._ballRadius);
+	_pos3D = new sVector(0, 0, -_gameField._ballDiameter * 1.5);
+	_angle = 0;
 	
-	_ballDiameter = 10;
-	_ballRadius = _ballDiameter / 2;
-	_cellNumX = 24;
-	_cellNumY = 18;
-	_cellNumTotal = _cellNumX * _cellNumY;
+	_traceResultCellIndex = -1;
+	_traceResultPos2D = new sVector2();
+	_traceResultLength = 100;
 	
-	_ballStepX = _ballDiameter;
-	_ballOffsetX = _ballRadius;
-	_ballStepY = sqrt(3) * _ballRadius;
+	_shot = false;
+	_ballSpeed = 4;
+	_ballDir = new sVector2();
+	_ballTargetCellIndex = -1;
+	_ballTargetPos2D = new sVector2();
+	_ballPos2D = new sVector2();
+	_ballPos3D = new sVector();
 	
-	_fieldW = _ballStepX * _cellNumX;
-	_fieldH = _ballStepY * _cellNumY - _ballStepY + _ballDiameter;
-	
-	_angleStep = 360 / _cellNumX;
-	_angleHalfStep = _angleStep / 2;
-	_wrapRadius = _ballRadius / dtan(_angleHalfStep);
-	_cylinderRadius = _wrapRadius - _ballRadius;
-	_cylinderHeight = _fieldH + _ballDiameter * 2;
-	
-	_ballsToDraw = array_create(_cellNumX * _cellNumY, -1);
-	_ballsToDrawNum = 0;
-	
-	_updateBallsToDraw = function() {
-		var i = 0;
-		var j = 0;
-		var grid = _grid;
-		var positionsLUTAngle = _positionsLUTAngle;
-		var cannonPosAngle = _cannonPosAngle;
-		var ballsToDraw = _ballsToDraw;
-		repeat(_cellNumTotal) {
-			if(grid[i]!=undefined && abs(angle_difference(positionsLUTAngle[i], cannonPosAngle)) < 135) {
-				ballsToDraw[j] = i;
-				j++;
-			}
-			i++;
-		}
-		_ballsToDrawNum = j;
+	SetPositionByAngle = function(angle) {
+		_posAngle = angle_normalize360(angle);
+		_pos2D.x = _posAngle / 360 * _gameField._fieldW;
+		_pos3D.x = lengthdir_x(_gameField._wrapRadius, _posAngle);
+		_pos3D.y = lengthdir_y(_gameField._wrapRadius, _posAngle);
 	}
 	
-	_grid = array_create(_cellNumTotal, undefined);
-	
-	
-	// create balls
-	_createBalls = function(rowNum) {
-		var colors = [ #FF0000, #FFFF00, #00FF00, #00FFFF, #0000FF ];
-		var cellNum = rowNum * _cellNumX;
-		for(var i=0; i<cellNum; i++) {
-			if(irandom(1)) {
-				var colorIndex = irandom(4);
-				_grid[i] = new sBall(i, colorIndex);
-			}
-		}
-	}
-	_createBalls(_cellNumY/2);
-	
-	
-	// coord conversion
-	Convert2DTo3D = function(px, py, outPos) {
-		var anglePos = (px / _fieldW) * 360;
-		outPos[@ 0] = lengthdir_x(_wrapRadius, anglePos);
-		outPos[@ 1] = lengthdir_y(_wrapRadius, anglePos);
-		outPos[@ 2] = _fieldH - py;
-	}
-	
-	Convert3DTo2D = function(px, py, pz, outPos) {
-		var dir = point_direction(0, 0, px, py);
-		outPos[@ 0] = (dir / 360) * _fieldW;
-		outPos[@ 1] = _fieldH - pz;
-	}
-	
-	
-	// cannon
-	_cannonPosAngle = 0;
-	_cannonX = 0;
-	_cannonY = _cylinderHeight - _ballRadius;
-	_cannonPos3D_X = 0;
-	_cannonPos3D_Y = 0;
-	_cannonPos3D_Z = -_ballDiameter * 1.5;
-	_cannonAngle = 0;
-	_cannonTraceLength = 100;
-	_cannonTraceResultX = 0;
-	_cannonTraceResultY = 0;
-	_cannonTraceCellIndex = -1;
-	
-	SetCannonPositionByAngle = function(angle) {
-		_cannonPosAngle = angle_normalize360(angle);
-		_cannonX = _cannonPosAngle / 360 * _fieldW;
-		_cannonPos3D_X = lengthdir_x(_wrapRadius, _cannonPosAngle);
-		_cannonPos3D_Y = lengthdir_y(_wrapRadius, _cannonPosAngle);
-	}
-	
-	SetCannonAngleByTargetPos = function(px, py) {
-		if(py>_fieldH + _ballRadius) {
+	SetAngleByTargetPos = function(px, py) {
+		if(py > _gameField._fieldH + _gameField._ballRadius) {
 			return false;
 		}
 		
-		var angle1 = (_cannonX / _fieldW) * 360;
-		var angle2 = (px / _fieldW) * 360;
-		var posDiff = angle_difference(angle2, angle1) / 360 * _fieldW;
-		_cannonAngle = point_direction(0, _cannonY, posDiff, py) - 90;
+		var angle1 = (_pos2D.x / _gameField._fieldW) * 360;
+		var angle2 = (px / _gameField._fieldW) * 360;
+		var posDiff = angle_difference(angle2, angle1) / 360 * _gameField._fieldW;
+		_angle = point_direction(0, _pos2D.y, posDiff, py) - 90;
 		return true;
 	}
 	
-	SetCannonAngleByWrapCylinderRaycast = function(ox, oy, oz, vx, vy, vz) {
+	SetAngleByWrapCylinderRaycast = function(ox, oy, oz, vx, vy, vz) {
 		static col = [ 0, 0, 0, 0 ];
 		
 		var dist2d = point_distance(0, 0, vx, vy);
@@ -182,49 +108,49 @@ function sGameField() constructor {
 			return false;
 		}
 		
-		if(line_circle_collision_point(ox, oy, ox + vx, oy + vy, 0, 0, _wrapRadius, col)) {
+		if(line_circle_collision_point(ox, oy, ox + vx, oy + vy, 0, 0, _gameField._wrapRadius, col)) {
 			var resX = col[0];
 			var resY = col[1];
 			var resZ = oz + point_distance(ox, oy, col[0], col[1]) * (vz / dist2d);
 			
 			static res2 = [ 0, 0 ];
-			Convert3DTo2D(resX, resY, resZ, res2);
-			return SetCannonAngleByTargetPos(res2[0], res2[1]);
+			_gameField.Convert3DTo2D(resX, resY, resZ, res2);
+			return SetAngleByTargetPos(res2[0], res2[1]);
 		}
 		return false;
 	}
 	
 	// Вычисляет позицию, на которую прилетит шарик при выстреле из пушки из текущей позиции и направления
-	CannonTrace = function() {
+	Trace = function() {
 		
 		// пушка расположена ниже чем шестиугольное поле шариков
-		var startX = _cannonX;
-		var startY = _cannonY;
+		var startX = _pos2D.x;
+		var startY = _pos2D.y;
 		
 		// направление пушки
-		var dirX = lengthdir_x(1, _cannonAngle + 90);
-		var dirY = lengthdir_y(1, _cannonAngle + 90);
+		var dirX = lengthdir_x(1, _angle + 90);
+		var dirY = lengthdir_y(1, _angle + 90);
 		
 		if(dirY>0) { // пушка направлена от поля
 			return false;
 		}
 		
-		var ringRadius = _ballRadius * 1.25;
+		var ringRadius = _gameField._ballRadius * 1.25;
 		var ringRadiusSquared = ringRadius * ringRadius;
 		
 		var hit = false;
 		var bestHitDist = infinity;
 		var bestHitY = -infinity;
 		
-		var grid = _grid; // одномерный массив
-		var width = _fieldW; // ширина поля
-		var cellNumX = _cellNumX; // количество ячеек по оси X
-		var cellNumY = _cellNumY; // количество ячеек по оси Y
-		var positionsLUT2D_X = _positionsLUT2D_X;
-		var positionsLUT2D_Y = _positionsLUT2D_Y;
+		var grid = _gameField._grid; // одномерный массив
+		var width = _gameField._fieldW; // ширина поля
+		var cellNumX = _gameField._cellNumX; // количество ячеек по оси X
+		var cellNumY = _gameField._cellNumY; // количество ячеек по оси Y
+		var positionsLUT2D_X = _gameField._positionsLUT2D_X;
+		var positionsLUT2D_Y = _gameField._positionsLUT2D_Y;
 		
-		var originY = _ballRadius;
-		var ballStepY = _ballStepY;
+		var originY = _gameField._ballRadius;
+		var ballStepY = _gameField._ballStepY;
 		
 		for (var row = cellNumY - 1; row >= 0; row--) {
 			var rowCenterY = originY + row * ballStepY;
@@ -271,47 +197,164 @@ function sGameField() constructor {
 		
 		if(hit) {
 			var bestHitX = startX + dirX * bestHitDist;
-			_cannonTraceResultX = bestHitX;
-			_cannonTraceResultY = bestHitY;
-			_cannonTraceLength = point_distance(startX, startY, bestHitX, bestHitY);
-			_cannonTraceCellIndex = _snapToIndex(bestHitX, bestHitY);
+			_traceResultPos2D.x = bestHitX;
+			_traceResultPos2D.y = bestHitY;
+			_traceResultLength = point_distance(startX, startY, bestHitX, bestHitY);
+			_traceResultCellIndex = _gameField.Pos2DToIndexCell(bestHitX, bestHitY);
 			return true;
 		}
 		
 		bestHitY = 0;
 		var bestHitX = startX + dirX * (startY - bestHitY);
-		_cannonTraceResultX = bestHitX;
-		_cannonTraceResultY = bestHitY;
-		_cannonTraceLength = point_distance(startX, startY, bestHitX, bestHitY);
-		_cannonTraceCellIndex = _snapToIndex(bestHitX, bestHitY);
+		_traceResultPos2D.x = bestHitX;
+		_traceResultPos2D.y = bestHitY;
+		_traceResultLength = point_distance(startX, startY, bestHitX, bestHitY);
+		_traceResultCellIndex = _gameField.Pos2DToIndexCell(bestHitX, bestHitY);
 		
 		return true;
 	}
 	
-	GetCannonAngle = function() { return _cannonAngle; }
-	GetCannonTraceLength = function() { return _cannonTraceLength; }
-	GetCannonTraceCellIndex = function() { return _cannonTraceCellIndex; }
+	GetAngle = function() { return _angle; }
+	GetTraceLength = function() { return _traceResultLength; }
+	GetTraceCellIndex = function() { return _traceResultCellIndex; }
+	CanShot = function() { return _traceResultCellIndex!=-1 && !_shot; }
 	
-	_cannonShot = false;
-	_cannonBallSpeed = 4;
-	_cannonBallPos2D_X = 0;
-	_cannonBallPos2D_Y = 0;
-	_cannonBallPos3D_X = 0;
-	_cannonBallPos3D_Y = 0;
-	_cannonBallPos3D_Z = 0;
-	_cannonBallTargetX = 0;
-	_cannonBallTargetY = 0;
-	_cannonBallDirX = 0;
-	_cannonBallDirY = 0;
-	CannonShot = function() {
-		_cannonShot = true;
-		_cannonBallPos2D_X = _cannonX;
-		_cannonBallPos2D_Y = _cannonY;
-		_cannonBallTargetX = _cannonTraceResultX;
-		_cannonBallTargetY = _cannonTraceResultY;
-		var len = point_distance(_cannonBallPos2D_X, _cannonBallPos2D_Y, _cannonBallTargetX, _cannonBallTargetY);
-		_cannonBallDirX = (_cannonBallTargetX - _cannonBallPos2D_X) / len;
-		_cannonBallDirY = (_cannonBallTargetY - _cannonBallPos2D_Y) / len;
+	Shot = function() {
+		if(!CanShot()) {
+			return;
+		}
+		
+		_shot = true;
+		_ballTargetCellIndex = _traceResultCellIndex;
+		_ballPos2D.Set(_pos2D);
+		_ballPos3D.Set(_pos3D);
+		_ballTargetPos2D.Set(_traceResultPos2D);
+		
+		var len = point_distance(_ballPos2D.x, _ballPos2D.y, _ballTargetPos2D.x, _ballTargetPos2D.y);
+		_ballDir.Set(_ballTargetPos2D).Subtract(_ballPos2D).DivideS(len);
+	}
+	
+	Step = function() {
+		var ballDiameter = _gameField._ballDiameter;
+		var grid = _gameField._grid;
+		var cellNumTotal = _gameField._cellNumTotal;
+		var positionsLUT2D_X = _gameField._positionsLUT2D_X;
+		var positionsLUT2D_Y = _gameField._positionsLUT2D_Y;
+		
+		if(!_shot) {
+			return;
+		}
+		
+		var d = point_distance(_ballPos2D.x, _ballPos2D.y, _ballTargetPos2D.x, _ballTargetPos2D.y);
+		var stop = d <= _ballSpeed;
+		
+		_ballPos2D.x += _ballDir.x * _ballSpeed;
+		_ballPos2D.y += _ballDir.y * _ballSpeed;
+		var posX = _ballPos2D.x;
+		var posY = _ballPos2D.y;
+		
+		static ballPos3D = [ 0, 0, 0 ];
+		_gameField.Convert2DTo3D(posX, posY, ballPos3D);
+		_ballPos3D.FromArray(ballPos3D);
+		
+		var i = 0;
+		repeat(cellNumTotal) {
+			var cell = grid[i];
+			if(cell!=undefined) {
+				var cx = positionsLUT2D_X[i];
+				var cy = positionsLUT2D_Y[i];
+				var d = point_distance(posX, posY, cx, cy);
+				if(d < ballDiameter) {
+					var vx = (cx - posX) / d;
+					var vy = (cy - posY) / d;
+					cell.OffsetX = (vx * ballDiameter) - (cx - posX);
+					cell.OffsetY = (vy * ballDiameter) - (cy - posY);
+					cell.Moved = true;
+				}
+			}
+			i++;
+		}
+		
+		if(stop) {
+			_shot = false;
+		}
+	}
+	
+	Draw = function() {
+		
+		var pos = _shot ? _ballPos3D : _pos3D;
+		var colorIndex = 0;
+		BallMesh().Draw(pos.x, pos.y, pos.z, colorIndex);
+		
+		if(!_shot && _traceResultCellIndex!=-1) {
+			var cylinderRadius = _gameField._wrapRadius;
+			var cylinderFullSpinLen = _gameField._fieldW;
+			var startPosAngle = -_posAngle;// -obj_Camera.ZAngle + 180;
+			
+			var rayAngle = -_angle;
+			var rayThickness = _gameField._ballRadius / 2;
+			var raySegmentLen = _gameField._ballRadius;
+			
+			var traceLen = _traceResultLength;
+			
+			CylindricRaycastLineMesh().Draw( 0, 0, pos.z,
+				cylinderRadius, cylinderFullSpinLen, startPosAngle,
+				rayAngle, rayThickness, raySegmentLen, traceLen
+			);
+			
+			var idx = GetTraceCellIndex();
+			if(idx!=-1) {
+				var px = _gameField._positionsLUT3D_X[idx];
+				var py = _gameField._positionsLUT3D_Y[idx];
+				var pz = _gameField._positionsLUT3D_Z[idx];
+				BallMesh().Draw(px, py, pz, 0);
+			}
+		}
+	}
+	
+	DrawDepth = function() {
+		var pos = _shot ? _ballPos3D : _pos3D;
+		BallMesh().DrawDepth(pos.x, pos.y, pos.z);
+	}
+}
+
+// Cylindrical hexagonal grid
+function sGameField() constructor {
+	//      (1)(2)
+	//    (6)(0)(3)
+	//     (5)(4)
+	
+	_ballDiameter = 10;
+	_ballRadius = _ballDiameter / 2;
+	_cellNumX = 24;
+	_cellNumY = 18;
+	_cellNumTotal = _cellNumX * _cellNumY;
+	
+	_ballOffsetX = _ballRadius;
+	_ballStepX = _ballDiameter;
+	_ballStepY = sqrt(3) * _ballRadius;
+	
+	_fieldW = _ballStepX * _cellNumX;
+	_fieldH = _ballStepY * _cellNumY - _ballStepY + _ballDiameter;
+	
+	_angleStep = 360 / _cellNumX;
+	_angleHalfStep = _angleStep / 2;
+	
+	_wrapRadius = _ballRadius / dtan(_angleHalfStep);
+	_cylinderRadius = _wrapRadius - _ballRadius;
+	_cylinderHeight = _fieldH + _ballDiameter * 2;
+	
+	_grid = array_create(_cellNumTotal, undefined);
+	
+	// create balls
+	_createBalls = function(rowNum) {
+		var cellNum = rowNum * _cellNumX;
+		for(var i=0; i<cellNum; i++) {
+			if(irandom(1)) {
+				var colorIndex = irandom(4);
+				_grid[i] = new sBall(self, i, colorIndex);
+			}
+		}
 	}
 	
 	// positions LUT
@@ -345,8 +388,10 @@ function sGameField() constructor {
 			_positionsLUT3D_Z[i] = pos3d[2];
 		}
 	}
-	_createPositionsLUT();
 	
+	SetRotationAngle = function(angle) {
+		_rotationAngle = angle;
+	}
 	
 	// cell positions
 	GetCellPos2D = function(cx, cy, outPos) {
@@ -362,122 +407,29 @@ function sGameField() constructor {
 		outPos[@ 2] = _positionsLUT3D_Z[i];
 	}
 	
-	GetCell = function(cx, cy) {
-		return _grid[ cy * _cellNumX + (cx % _cellNumX + _cellNumX) % _cellNumX ];
+	// coord conversion
+	Convert2DTo3D = function(px, py, outPos) {
+		var anglePos = (px / _fieldW) * 360;
+		outPos[@ 0] = lengthdir_x(_wrapRadius, anglePos);
+		outPos[@ 1] = lengthdir_y(_wrapRadius, anglePos);
+		outPos[@ 2] = _fieldH - py;
 	}
 	
-	
-	CleanUp = function() {
-		
+	Convert3DTo2D = function(px, py, pz, outPos) {
+		var dir = point_direction(0, 0, px, py);
+		outPos[@ 0] = (dir / 360) * _fieldW;
+		outPos[@ 1] = _fieldH - pz;
 	}
 	
-	_tmpArr = [ 0, 0, 0 ];
-	Step = function() {
-		_updateBallsToDraw();
-		
-		if(_cannonShot) {
-			var d = point_distance(_cannonBallPos2D_X, _cannonBallPos2D_Y, _cannonBallTargetX, _cannonBallTargetY);
-			if(d <= _cannonBallSpeed) {
-				_cannonShot = false;
-			} else {
-				_cannonBallPos2D_X += _cannonBallDirX * _cannonBallSpeed;
-				_cannonBallPos2D_Y += _cannonBallDirY * _cannonBallSpeed;
-				
-				Convert2DTo3D(_cannonBallPos2D_X, _cannonBallPos2D_Y, _tmpArr);
-				_cannonBallPos3D_X = _tmpArr[0];
-				_cannonBallPos3D_Y = _tmpArr[1];
-				_cannonBallPos3D_Z = _tmpArr[2];
-				
-				var i = 0;
-				repeat(_cellNumTotal) {
-					var cell = _grid[i];
-					if(cell!=undefined) {
-						var cx = _positionsLUT2D_X[i];
-						var cy = _positionsLUT2D_Y[i];
-						var d = point_distance(_cannonBallPos2D_X, _cannonBallPos2D_Y, cx, cy);
-						if(d<_ballDiameter) {
-							var vx = (cx - _cannonBallPos2D_X) / d;
-							var vy = (cy - _cannonBallPos2D_Y) / d;
-							cell.OffsetX = (vx * _ballDiameter) - (cx - _cannonBallPos2D_X);
-							cell.OffsetY = (vy * _ballDiameter) - (cy - _cannonBallPos2D_Y);
-							cell.Moved = true;
-						}
-					}
-					i++;
-				}
-			}
-		}
-		
-		var i = 0;
-		repeat(_cellNumTotal) {
-			var cell = _grid[i];
-			if(cell!=undefined) {
-				cell.Step();
-			}
-			i++;
-		}
-	}
-	
-	DrawDebug = function(px, py)
-	{
-		if(display_get_gui_width() < 1200)
-		{
-			return;
-		}
-		
-		var scl = 3;
-		
-		var r = _ballRadius * scl-1;
-		
-		var x1 = px;
-		var y1 = py;
-		var x2 = x1 + _fieldW * scl;
-		var y2 = y1 + _fieldH * scl;
-		
-		draw_set_color(c_black);
-		draw_rectangle(x1, y1, x2, y2 + _ballDiameter * scl * 2, false);
-		
-		for(var i=0; i<_cellNumTotal; i++)
-		{
-			var ball = _grid[i];
-			if(ball!=undefined)
-			{
-				//color = color_from_color_index(ball.ColorIndex);
-				//draw_set_color(color);
-				var posX = (_positionsLUT2D_X[i] + ball.OffsetX) * scl;
-				var posY = (_positionsLUT2D_Y[i] + ball.OffsetY) * scl;
-				draw_circle(px + posX, py + posY, r, false);
-			}
-		}
-		
-		
-		draw_set_color(c_red);
-		draw_rectangle(x1, y1, x2, y2, true);
-		
-		draw_rectangle(x1, y2, x2, y2 + _ballDiameter * scl * 2, true);
-		
-		draw_set_color(c_white);
-		var cannonX = x1 + _cannonX * scl;
-		var cannonY = y1 + _cannonY * scl;
-		draw_circle(cannonX, cannonY, r, false);
-		
-		draw_line(cannonX, cannonY, cannonX + lengthdir_x(scl * _fieldH, _cannonAngle + 90), cannonY + lengthdir_y(scl * _fieldH, _cannonAngle + 90));
-		
-		draw_set_color(c_red);
-		draw_circle(px + _cannonTraceResultX * scl, py + + _cannonTraceResultY * scl, 4, false);
-		
-		_drawSelectedCell(px, py, scl);
-	}
-	
-	_snapToIndex = function(px, py) {
-		
-		px = wrap(px, 0, _fieldW); // wrap x
+	// Returns snapped cell index of hexagonal 2d grid by position.
+	Pos2DToIndexCell = function(px, py) {
+		px = wrap(px, 0, _fieldW); // wrap by x
 		
 		var size = _ballRadius;
-		var cellSizeX = size; //size * sqrt(3) / 2;
-		var cellSizeY = ( size * (2 / sqrt(3)) ) / 2; //size / 2;
+		var cellSizeX = size;
+		var cellSizeY = ( size * (2 / sqrt(3)) ) / 2;
 		
-		py -= size; //cellSizeY * 2;
+		py -= size;
 		
 		var ix = floor(px / cellSizeX);
 		var iy = floor(py / cellSizeY);
@@ -504,56 +456,87 @@ function sGameField() constructor {
 			return -1;
 		}
 		
-		//outPos[@ 0] = ix * cellSizeX;
-		//outPos[@ 1] = iy * cellSizeY + _ballRadius;
-		
 		return rowIdx * _cellNumX + colIdx;
 	}
 	
-	_drawSelectedCell = function(px, py, scl)
+	// cell data
+	GetCell = function(cx, cy) {
+		return _grid[ cy * _cellNumX + (cx % _cellNumX + _cellNumX) % _cellNumX ];
+	}
+	
+	// update
+	Step = function() {
+		var i = 0;
+		repeat(_cellNumTotal) {
+			if(_grid[i]!=undefined) {
+				_grid[i].Step();
+			}
+			i++;
+		}
+	}
+	
+	// init
+	_createBalls(_cellNumY/2);
+	_createPositionsLUT();
+}
+
+
+function sGameFieldRenderer(gameField) constructor {
+	_gameField = gameField;
+	_ballsToDraw = array_create(_gameField._cellNumX * _gameField._cellNumY, -1);
+	_ballsToDrawNum = 0;
+	
+	UpdateBallsToDraw = function() {
+		var i = 0;
+		var j = 0;
+		var grid = _gameField._grid;
+		var positionsLUTAngle = _gameField._positionsLUTAngle;
+		var posAngle = _gameField._rotationAngle;
+		var ballsToDraw = _ballsToDraw;
+		repeat(_gameField._cellNumTotal) {
+			if(grid[i]!=undefined && abs(angle_difference(positionsLUTAngle[i], posAngle)) < 135) {
+				ballsToDraw[j] = i;
+				j++;
+			}
+			i++;
+		}
+		_ballsToDrawNum = j;
+	}
+	
+	Draw = function()
 	{
-		if(!device_mouse_check_button(0, mb_left)) {
-			return;
+		var i = 0;
+		var grid = _gameField._grid;
+		var mesh = BallMesh();
+		
+		mesh.DrawInstancesBegin();
+		
+		var ballsToDraw = _ballsToDraw;
+		repeat(_ballsToDrawNum) {
+			var ball = grid[ballsToDraw[i]];
+			mesh.DrawInstance(ball.Pos3D_X, ball.Pos3D_Y, ball.Pos3D_Z, ball.ColorIndex);
+			i++;
 		}
 		
-		var x1 = px;
-		var y1 = py;
-		var x2 = x1 + _fieldW * scl;
-		var y2 = y1 + _fieldH * scl;
-		var mx = device_mouse_x_to_gui(0);
-		var my = device_mouse_y_to_gui(0);
+		mesh.DrawInstancesEnd();
+	}
+	
+	DrawDepth = function()
+	{
+		var i = 0;
+		var grid = _gameField._grid;
+		var mesh = BallMesh();
 		
-		if(!point_in_rectangle(mx, my, x1, y1, x2, y2))
-		{
-			return;
+		mesh.DrawDepthInstancesBegin();
+		
+		var ballsToDraw = _ballsToDraw;
+		repeat(_ballsToDrawNum) {
+			var ball = grid[ballsToDraw[i]];
+			mesh.DrawDepthInstance(ball.Pos3D_X, ball.Pos3D_Y, ball.Pos3D_Z);
+			i++;
 		}
 		
-		var r = _ballRadius * scl;
-		
-		
-		//var outPos = [ 0, 0 ];
-		var i = _snapToIndex((mx - px) / scl, (my - py)/scl);//, outPos);
-		if(i==-1)
-		{
-			return;
-		}
-		
-		var cx = px + _positionsLUT2D_X[i] * scl;
-		var cy = py + _positionsLUT2D_Y[i] * scl;
-		//var cx = outPos[0] * scl + px;
-		//var cy = outPos[1] * scl + px;
-		
-		
-		draw_set_color(c_white);
-		//draw_set_alpha(0.5);
-		draw_circle(cx, cy, r, true);
-		draw_set_alpha(1);
-		
-		draw_set_color(c_white);
-		draw_circle(mx, my, 2, false);
-		
-		draw_set_colour(c_maroon);
-		draw_text(4, 4, $"index = {i}");
+		mesh.DrawDepthInstancesEnd();
 	}
 }
 

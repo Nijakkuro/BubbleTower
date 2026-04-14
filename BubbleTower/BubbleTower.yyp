@@ -92,6 +92,7 @@
     {"id":{"name":"scr_Time","path":"scripts/scr_Time/scr_Time.yy",},},
     {"id":{"name":"scr_TowerMesh","path":"scripts/scr_TowerMesh/scr_TowerMesh.yy",},},
     {"id":{"name":"scr_Utils","path":"scripts/scr_Utils/scr_Utils.yy",},},
+    {"id":{"name":"scr_Vectors","path":"scripts/scr_Vectors/scr_Vectors.yy",},},
     {"id":{"name":"sh_Background","path":"shaders/sh_Background/sh_Background.yy",},},
     {"id":{"name":"sh_Balls","path":"shaders/sh_Balls/sh_Balls.yy",},},
     {"id":{"name":"sh_BallsDistance","path":"shaders/sh_BallsDistance/sh_BallsDistance.yy",},},

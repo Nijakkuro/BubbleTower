@@ -100,3 +100,92 @@ function MakeTowerTexture()
 	surface_save(surf, "tower.png");
 }
 
+
+
+
+function GameFieldDrawDebug(gameField, px, py)
+{
+	// TODO: get values from gameField
+	
+	if(display_get_gui_width() < 1200)
+	{
+		return;
+	}
+	
+	var scl = 3;
+	
+	var r = _ballRadius * scl-1;
+	
+	var x1 = px;
+	var y1 = py;
+	var x2 = x1 + _fieldW * scl;
+	var y2 = y1 + _fieldH * scl;
+	
+	draw_set_color(c_black);
+	draw_rectangle(x1, y1, x2, y2 + _ballDiameter * scl * 2, false);
+	
+	for(var i=0; i<_cellNumTotal; i++)
+	{
+		var ball = _grid[i];
+		if(ball!=undefined)
+		{
+			//color = color_from_color_index(ball.ColorIndex);
+			//draw_set_color(color);
+			var posX = (_positionsLUT2D_X[i] + ball.OffsetX) * scl;
+			var posY = (_positionsLUT2D_Y[i] + ball.OffsetY) * scl;
+			draw_circle(px + posX, py + posY, r, false);
+		}
+	}
+	
+	
+	draw_set_color(c_red);
+	draw_rectangle(x1, y1, x2, y2, true);
+	
+	draw_rectangle(x1, y2, x2, y2 + _ballDiameter * scl * 2, true);
+	
+	draw_set_color(c_white);
+	var cannonX = x1 + _cannonX * scl;
+	var cannonY = y1 + _cannonY * scl;
+	draw_circle(cannonX, cannonY, r, false);
+	
+	draw_line(cannonX, cannonY, cannonX + lengthdir_x(scl * _fieldH, _cannonAngle + 90), cannonY + lengthdir_y(scl * _fieldH, _cannonAngle + 90));
+	
+	draw_set_color(c_red);
+	draw_circle(px + _cannonTraceResultX * scl, py + + _cannonTraceResultY * scl, 4, false);
+	
+	if(!device_mouse_check_button(0, mb_left)) {
+		return;
+	}
+	
+	x1 = px;
+	y1 = py;
+	x2 = x1 + _fieldW * scl;
+	y2 = y1 + _fieldH * scl;
+	var mx = device_mouse_x_to_gui(0);
+	var my = device_mouse_y_to_gui(0);
+	
+	if(!point_in_rectangle(mx, my, x1, y1, x2, y2))
+	{
+		return;
+	}
+	
+	var i = _snapToIndex((mx - px) / scl, (my - py)/scl);
+	if(i==-1)
+	{
+		return;
+	}
+	
+	var cx = px + _positionsLUT2D_X[i] * scl;
+	var cy = py + _positionsLUT2D_Y[i] * scl;
+	
+	draw_set_color(c_white);
+	draw_circle(cx, cy, r, true);
+	draw_set_alpha(1);
+	
+	draw_set_color(c_white);
+	draw_circle(mx, my, 2, false);
+	
+	draw_set_colour(c_maroon);
+	draw_text(4, 4, $"index = {i}");
+}
+

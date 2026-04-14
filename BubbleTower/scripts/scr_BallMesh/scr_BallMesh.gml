@@ -203,3 +203,9 @@ function sBallMesh() constructor {
 	}
 }
 
+function BallMesh()
+{
+	static inst = new sBallMesh();
+	return inst;
+}
+
