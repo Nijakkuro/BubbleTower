@@ -1,8 +1,9 @@
+// Индексы направлений соседей в гекс-сетке:
 //      (1)(2)
 //    (6)(0)(3)
 //     (5)(4)
 
-global.LUT_hex_cell_even = [
+global.LUT_hex_cell_not_even = [
 	[  0, -1 ],
 	[  1, -1 ],
 	[ -1,  0 ],
@@ -11,7 +12,7 @@ global.LUT_hex_cell_even = [
 	[  0,  1 ]
 ];
 
-global.LUT_hex_cell_not_even = [
+global.LUT_hex_cell_even = [
 	[ -1, -1 ],
 	[  0, -1 ],
 	[ -1,  0 ],
@@ -25,6 +26,7 @@ global.LUT_hex_cell_not_even = [
 
 function sBall(gameField, index, colorIndex=0) constructor
 {
+	// Данные шарика, привязанного к ячейке сетки.
 	GameField = gameField;
 	
 	CellIndex = index;
@@ -43,35 +45,67 @@ function sBall(gameField, index, colorIndex=0) constructor
 	
 	Step = function() {
 		static outPos = [ 0, 0, 0 ];
+		var i = CellIndex;
+		var gf = GameField;
+		var px = gf.PositionsLUT2D_X[i];
+		var py = gf.PositionsLUT2D_Y[i];
+		
 		if(Moved) {
-			var i = CellIndex;
-			var gf = GameField;
-			var px = gf.PositionsLUT2D_X[i];
-			var py = gf.PositionsLUT2D_Y[i];
+			// Пружина к "родной" позиции + связь с соседями для передачи импульса.
+			var ax = -OffsetX * gf.BallSpringToCell;
+			var ay = -OffsetY * gf.BallSpringToCell;
 			
-			OffsetX *= 0.9;
-			OffsetY *= 0.9;
-			
-			if(OffsetX < 0.01 && OffsetY < 0.01) {
-				OffsetX = 0;
-				OffsetY = 0;
-				Moved = false;
+			var cx = i mod gf.CellNumX;
+			var cy = i div gf.CellNumX;
+			var lut = cy mod 2 == 0 ? global.LUT_hex_cell_even : global.LUT_hex_cell_not_even;
+			var n = 0;
+			repeat(6) {
+				var nx = cx + lut[n][0];
+				var ny = cy + lut[n][1];
+				if(ny>=0 && ny<gf.CellNumY) {
+					var nidx = ny * gf.CellNumX + wrap(nx, 0, gf.CellNumX);
+					var neighbor = gf.Grid[nidx];
+					if(neighbor!=undefined) {
+						ax += (neighbor.OffsetX - OffsetX) * gf.BallNeighborSpring;
+						ay += (neighbor.OffsetY - OffsetY) * gf.BallNeighborSpring;
+						neighbor.Moved = true;
+					}
+				}
+				n++;
 			}
 			
-			gf.Convert2DTo3D(px + OffsetX, py + OffsetY, outPos);
-			Pos3D_X = outPos[0];
-			Pos3D_Y = outPos[1];
-			Pos3D_Z = outPos[2];
+			VelocityX = (VelocityX + ax) * gf.BallVelocityDrag;
+			VelocityY = (VelocityY + ay) * gf.BallVelocityDrag;
+			OffsetX += VelocityX;
+			OffsetY += VelocityY;
+			
+			// Останавливаем колебания, когда смещения и скорости уже незаметны.
+			if(abs(OffsetX) < gf.BallOffsetStopEpsilon
+			&& abs(OffsetY) < gf.BallOffsetStopEpsilon
+			&& abs(VelocityX) < gf.BallVelocityStopEpsilon
+			&& abs(VelocityY) < gf.BallVelocityStopEpsilon) {
+				OffsetX = 0;
+				OffsetY = 0;
+				VelocityX = 0;
+				VelocityY = 0;
+				Moved = false;
+			}
 		}
+		
+		gf.Convert2DTo3D(px + OffsetX, py + OffsetY, outPos);
+		Pos3D_X = outPos[0];
+		Pos3D_Y = outPos[1];
+		Pos3D_Z = outPos[2];
 	}
 }
 
 function sGameFieldCannon(gameField) constructor {
+	// Логика пушки: прицеливание, трассировка и полет текущего шарика.
 	_gameField = gameField;
 	
 	_posAngle = 0;
 	_pos2D = new sVector2(0, _gameField.CylinderHeight - _gameField.BallRadius);
-	_pos3D = new sVector(0, 0, -_gameField.BallDiameter * 1.5);
+	_pos3D = new sVector(0, 0, -_gameField.BallDiameter * _gameField.CannonDepthOffsetScale);
 	_angle = 0;
 	
 	_traceResultCellIndex = -1;
@@ -79,7 +113,7 @@ function sGameFieldCannon(gameField) constructor {
 	_traceResultLength = 100;
 	
 	_shot = false;
-	_ballSpeed = 4;
+	_ballSpeed = _gameField.CannonBallSpeed;
 	_ballDir = new sVector2();
 	_ballTargetCellIndex = -1;
 	_ballTargetPos2D = new sVector2();
@@ -87,6 +121,7 @@ function sGameFieldCannon(gameField) constructor {
 	_ballPos3D = new sVector();
 	
 	SetPositionByAngle = function(angle) {
+		// Позиция пушки скользит по окружности цилиндра.
 		_posAngle = angle_normalize360(angle);
 		_pos2D.x = _posAngle / 360 * _gameField.FieldW;
 		_pos3D.x = lengthdir_x(_gameField.WrapRadius, _posAngle);
@@ -109,7 +144,7 @@ function sGameFieldCannon(gameField) constructor {
 		static col = [ 0, 0, 0, 0 ];
 		
 		var dist2d = point_distance(0, 0, vx, vy);
-		if(dist2d<0.0000001) {
+		if(dist2d < _gameField.MathEpsilon) {
 			return false;
 		}
 		
@@ -140,7 +175,7 @@ function sGameFieldCannon(gameField) constructor {
 			return false;
 		}
 		
-		var ringRadius = _gameField.BallRadius * 1.25;
+		var ringRadius = _gameField.BallRadius * _gameField.TraceCollisionRadiusScale;
 		var ringRadiusSquared = ringRadius * ringRadius;
 		
 		var hit = false;
@@ -240,6 +275,10 @@ function sGameFieldCannon(gameField) constructor {
 		_ballTargetPos2D.Set(_traceResultPos2D);
 		
 		var len = point_distance(_ballPos2D.x, _ballPos2D.y, _ballTargetPos2D.x, _ballTargetPos2D.y);
+		if(len <= _gameField.MathEpsilon) {
+			_shot = false;
+			return;
+		}
 		_ballDir.Set(_ballTargetPos2D).Subtract(_ballPos2D).DivideS(len);
 	}
 	
@@ -249,6 +288,7 @@ function sGameFieldCannon(gameField) constructor {
 		}
 		
 		var ballDiameter = _gameField.BallDiameter;
+		var ballDiameterSq = ballDiameter * ballDiameter;
 		var grid = _gameField.Grid;
 		var cellNumTotal = _gameField.CellNumTotal;
 		var positionsLUT2D_X = _gameField.PositionsLUT2D_X;
@@ -272,12 +312,19 @@ function sGameFieldCannon(gameField) constructor {
 			if(cell!=undefined) {
 				var cx = positionsLUT2D_X[i];
 				var cy = positionsLUT2D_Y[i];
-				var d = point_distance(posX, posY, cx, cy);
-				if(d < ballDiameter) {
-					var vx = (cx - posX) / d;
-					var vy = (cy - posY) / d;
-					cell.OffsetX = (vx * ballDiameter) - (cx - posX);
-					cell.OffsetY = (vy * ballDiameter) - (cy - posY);
+				var dx = _gameField.WrapDeltaX(posX, cx);
+				var dy = cy - posY;
+				var distSq = dx * dx + dy * dy;
+				if(distSq < ballDiameterSq && distSq > _gameField.MathEpsilon) {
+					var d = sqrt(distSq);
+					var vx = dx / d;
+					var vy = dy / d;
+					var penetration = ballDiameter - d;
+					var impulseOffset = penetration * _gameField.HitOffsetImpulseScale;
+					cell.OffsetX += vx * impulseOffset;
+					cell.OffsetY += vy * impulseOffset;
+					cell.VelocityX += vx * _gameField.HitVelocityImpulse;
+					cell.VelocityY += vy * _gameField.HitVelocityImpulse;
 					cell.Moved = true;
 				}
 			}
@@ -286,9 +333,16 @@ function sGameFieldCannon(gameField) constructor {
 		
 		if(stop) {
 			_shot = false;
-			var ball = _gameField.AddBall(_ballTargetCellIndex, 0);
-			ball.OffsetX = posX - positionsLUT2D_X[_ballTargetCellIndex];
-			ball.OffsetY = posY - positionsLUT2D_Y[_ballTargetCellIndex];
+			var placeIndex = _gameField.FindBestAttachCell(_ballTargetCellIndex, posX, posY);
+			if(placeIndex==-1) {
+				return;
+			}
+			
+			var ball = _gameField.AddBall(placeIndex, 0);
+			ball.OffsetX = _gameField.WrapDeltaX(positionsLUT2D_X[placeIndex], posX);
+			ball.OffsetY = posY - positionsLUT2D_Y[placeIndex];
+			ball.Moved = true;
+			_gameField.ResolveShotPlacement(placeIndex);
 		}
 	}
 	
@@ -332,8 +386,23 @@ function sGameFieldCannon(gameField) constructor {
 
 // Cylindrical hexagonal grid
 function sGameField() constructor {
+	// Параметры цилиндрической гекс-сетки.
 	BallDiameter = 10;
 	BallRadius = BallDiameter / 2;
+	MathEpsilon = 0.000001;
+	BallOffsetStopEpsilon = 0.01;
+	BallSpringToCell = 0.125;
+	BallNeighborSpring = 0.025;
+	BallVelocityDrag = 0.75;
+	BallVelocityStopEpsilon = 0.01;
+	HitOffsetImpulseScale = 0.7;
+	HitVelocityImpulse = 0.35;
+	TraceCollisionRadiusScale = 1.25;
+	CannonBallSpeed = 6;
+	CannonDepthOffsetScale = 1.5;
+	VisibleHalfArcAngle = 135;
+	// Порог видимости для фронтальной части цилиндра.
+	VisibleBallAngleThreshold = VisibleHalfArcAngle;
 	CellNumX = 24;
 	CellNumY = 18;
 	CellNumTotal = CellNumX * CellNumY;
@@ -356,19 +425,14 @@ function sGameField() constructor {
 	Grid = array_create(CellNumTotal, undefined);
 	
 	AddBall = function(cellIndex, colorIndex) {
-		if(Grid[cellIndex]!=undefined) {
-			delete Grid[cellIndex];
-		}
+		// Перезапись ячейки без delete: быстрее и достаточно для GC.
 		var ball = new sBall(self, cellIndex, colorIndex);
 		Grid[cellIndex] = ball;
 		return ball;
 	}
 	
 	RemoveBall = function(cellIndex) {
-		if(Grid[cellIndex]!=undefined) {
-			delete Grid[cellIndex];
-			Grid[cellIndex] = undefined;
-		}
+		Grid[cellIndex] = undefined;
 	}
 	
 	// create balls
@@ -382,7 +446,7 @@ function sGameField() constructor {
 		}
 	}
 	
-	// positions LUT
+	// LUT позиций: 2D для логики, 3D для отрисовки.
 	PositionsLUTAngle = array_create(CellNumTotal);
 	PositionsLUT2D_X = array_create(CellNumTotal);
 	PositionsLUT2D_Y = array_create(CellNumTotal);
@@ -432,7 +496,7 @@ function sGameField() constructor {
 		outPos[@ 2] = PositionsLUT3D_Z[i];
 	}
 	
-	// coord conversion
+	// Преобразования координат между "разверткой цилиндра" и 3D.
 	Convert2DTo3D = function(px, py, outPos) {
 		var anglePos = (px / FieldW) * 360;
 		outPos[@ 0] = lengthdir_x(WrapRadius, anglePos);
@@ -446,7 +510,16 @@ function sGameField() constructor {
 		outPos[@ 1] = FieldH - pz;
 	}
 	
-	// Returns snapped cell index of hexagonal 2d grid by position.
+	// Кратчайшая разница по X на горизонтально закольцованной развертке.
+	WrapDeltaX = function(fromX, toX) {
+		var dx = toX - fromX;
+		var halfW = FieldW * 0.5;
+		if(dx > halfW) dx -= FieldW;
+		if(dx < -halfW) dx += FieldW;
+		return dx;
+	}
+	
+	// Возвращает индекс ближайшей ячейки гекс-сетки для 2D-позиции.
 	Pos2DToIndexCell = function(px, py) {
 		px = wrap(px, 0, FieldW); // wrap by x
 		
@@ -489,6 +562,186 @@ function sGameField() constructor {
 		return Grid[ cy * CellNumX + (cx % CellNumX + CellNumX) % CellNumX ];
 	}
 	
+	// Возвращает индексы существующих соседей (по 6 направлениям гекс-сетки).
+	GetNeighborIndices = function(cellIndex, outArray) {
+		var cx = cellIndex mod CellNumX;
+		var cy = cellIndex div CellNumX;
+		var lut = cy mod 2 == 0 ? global.LUT_hex_cell_even : global.LUT_hex_cell_not_even;
+		var count = 0;
+		var i = 0;
+		repeat(6) {
+			var nx = cx + lut[i][0];
+			var ny = cy + lut[i][1];
+			if(ny>=0 && ny<CellNumY) {
+				outArray[count] = ny * CellNumX + wrap(nx, 0, CellNumX);
+				count++;
+			}
+			i++;
+		}
+		return count;
+	}
+	
+	// BFS по шару одного цвета, начиная со startIndex.
+	FindConnectedSameColor = function(startIndex, outIndices) {
+		var startBall = Grid[startIndex];
+		if(startBall==undefined) {
+			return 0;
+		}
+		
+		var targetColor = startBall.ColorIndex;
+		var visited = array_create(CellNumTotal, false);
+		var queue = array_create(CellNumTotal, 0);
+		var queueHead = 0;
+		var queueTail = 0;
+		var resultCount = 0;
+		static neighbors = [0, 0, 0, 0, 0, 0];
+		
+		visited[startIndex] = true;
+		queue[queueTail] = startIndex;
+		queueTail++;
+		
+		while(queueHead < queueTail) {
+			var idx = queue[queueHead];
+			queueHead++;
+			outIndices[resultCount] = idx;
+			resultCount++;
+			
+			var nCount = GetNeighborIndices(idx, neighbors);
+			var n = 0;
+			repeat(nCount) {
+				var nidx = neighbors[n];
+				if(!visited[nidx]) {
+					visited[nidx] = true;
+					var nBall = Grid[nidx];
+					if(nBall!=undefined && nBall.ColorIndex==targetColor) {
+						queue[queueTail] = nidx;
+						queueTail++;
+					}
+				}
+				n++;
+			}
+		}
+		
+		return resultCount;
+	}
+	
+	// Помечает все шарики, которые связаны с верхним рядом.
+	FindAnchoredToTop = function(outVisited) {
+		var i = 0;
+		repeat(CellNumTotal) {
+			outVisited[i] = false;
+			i++;
+		}
+		
+		var queue = array_create(CellNumTotal, 0);
+		var queueHead = 0;
+		var queueTail = 0;
+		var _x = 0; // x is reserved by the compiler
+		
+		repeat(CellNumX) {
+			var topIdx = _x;
+			if(Grid[topIdx]!=undefined) {
+				outVisited[topIdx] = true;
+				queue[queueTail] = topIdx;
+				queueTail++;
+			}
+			_x++;
+		}
+		
+		static neighbors = [0, 0, 0, 0, 0, 0];
+		while(queueHead < queueTail) {
+			var idx = queue[queueHead];
+			queueHead++;
+			
+			var nCount = GetNeighborIndices(idx, neighbors);
+			var n = 0;
+			repeat(nCount) {
+				var nidx = neighbors[n];
+				if(!outVisited[nidx] && Grid[nidx]!=undefined) {
+					outVisited[nidx] = true;
+					queue[queueTail] = nidx;
+					queueTail++;
+				}
+				n++;
+			}
+		}
+	}
+	
+	RemoveBallsByIndices = function(indices, count) {
+		var i = 0;
+		repeat(count) {
+			RemoveBall(indices[i]);
+			i++;
+		}
+	}
+	
+	// Выбор ячейки для прикрепления прилетевшего шарика:
+	// 1) расчетная ячейка, если свободна
+	// 2) ближайшая свободная соседняя к точке контакта
+	FindBestAttachCell = function(preferredIndex, hitPosX, hitPosY) {
+		if(preferredIndex<0 || preferredIndex>=CellNumTotal) {
+			return -1;
+		}
+		
+		if(Grid[preferredIndex]==undefined) {
+			return preferredIndex;
+		}
+		
+		static neighbors = [0, 0, 0, 0, 0, 0];
+		var nCount = GetNeighborIndices(preferredIndex, neighbors);
+		var bestIdx = -1;
+		var bestDistSq = infinity;
+		var n = 0;
+		repeat(nCount) {
+			var idx = neighbors[n];
+			if(Grid[idx]==undefined) {
+				var dx = WrapDeltaX(hitPosX, PositionsLUT2D_X[idx]);
+				var dy = PositionsLUT2D_Y[idx] - hitPosY;
+				var distSq = dx * dx + dy * dy;
+				if(distSq < bestDistSq) {
+					bestDistSq = distSq;
+					bestIdx = idx;
+				}
+			}
+			n++;
+		}
+		
+		return bestIdx;
+	}
+	
+	// Основной post-shot pipeline:
+	// place -> match>=3 -> remove -> floating -> remove.
+	ResolveShotPlacement = function(placedIndex) {
+		static sameColorGroup = [];
+		var sameColorCount = FindConnectedSameColor(placedIndex, sameColorGroup);
+		if(sameColorCount < 3) {
+			return false;
+		}
+		
+		RemoveBallsByIndices(sameColorGroup, sameColorCount);
+		return true; // temp to test previous logic
+
+		var anchored = array_create(CellNumTotal, false);
+		FindAnchoredToTop(anchored);
+		
+		static floating = [];
+		var floatingCount = 0;
+		var i = 0;
+		repeat(CellNumTotal) {
+			if(Grid[i]!=undefined && !anchored[i]) {
+				floating[floatingCount] = i;
+				floatingCount++;
+			}
+			i++;
+		}
+		
+		if(floatingCount > 0) {
+			RemoveBallsByIndices(floating, floatingCount);
+		}
+		
+		return true;
+	}
+	
 	// update
 	Step = function() {
 		var i = 0;
@@ -501,12 +754,13 @@ function sGameField() constructor {
 	}
 	
 	// init
-	_createBalls(CellNumY/2);
 	_initPositionsLUT();
+	_createBalls(CellNumY/2);
 }
 
 
 function sGameFieldRenderer(gameField) constructor {
+	// Рендер видимой части цилиндра (фронт + боковые сектора).
 	_gameField = gameField;
 	_ballsToDraw = array_create(_gameField.CellNumX * _gameField.CellNumY, -1);
 	_ballsToDrawNum = 0;
@@ -519,7 +773,7 @@ function sGameFieldRenderer(gameField) constructor {
 		var posAngle = _gameField.RotationAngle;
 		var ballsToDraw = _ballsToDraw;
 		repeat(_gameField.CellNumTotal) {
-			if(grid[i]!=undefined && abs(angle_difference(positionsLUTAngle[i], posAngle)) < 135) {
+			if(grid[i]!=undefined && abs(angle_difference(positionsLUTAngle[i], posAngle)) < _gameField.VisibleBallAngleThreshold) {
 				ballsToDraw[j] = i;
 				j++;
 			}
