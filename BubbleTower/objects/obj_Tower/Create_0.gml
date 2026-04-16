@@ -7,15 +7,15 @@ _gameFieldRenderer = new sGameFieldRenderer(_gameField);
 _cannon = new sGameFieldCannon(_gameField);
 
 // cylinder parametres
-_cylinderRadius = _gameField._cylinderRadius;
-_cylinderHeight = _gameField._cylinderHeight;
-_cylinderZ2 = _gameField._fieldH;
-_cylinderZ1 = -_gameField._ballDiameter * 2;
-_cylinderHeight = _cylinderZ2 - _cylinderZ1;
-_cylinderCZ = _cylinderZ1 + _cylinderHeight * 0.5;
+CylinderRadius = _gameField.CylinderRadius;
+CylinderHeight = _gameField.CylinderHeight;
+_cylinderZ2 = _gameField.FieldH;
+_cylinderZ1 = -_gameField.BallDiameter * 2;
+CylinderHeight = _cylinderZ2 - _cylinderZ1;
+_cylinderCZ = _cylinderZ1 + CylinderHeight * 0.5;
 
 // tower mesh
-_tower = new sTowerMesh(_cylinderZ2, _cylinderZ1, 64, _cylinderRadius, _cylinderRadius + _gameField._ballDiameter * 1.5 );
+_tower = new sTowerMesh(_cylinderZ2, _cylinderZ1, 64, CylinderRadius, CylinderRadius + _gameField.BallDiameter * 1.5 );
 
 // control
 _rotateLB = false;
@@ -74,7 +74,7 @@ _step = function() {
 	obj_Camera.ZAngle += _angleSpeed;
 	_angleSpeed *= _angleSpeedFade;
 	_gameField.SetRotationAngle(obj_Camera.ZAngle-180);
-	_cannon.SetPositionByAngle(_gameField._rotationAngle);
+	_cannon.SetPositionByAngle(_gameField.RotationAngle);
 	
 	// trace
 	
@@ -96,6 +96,10 @@ _step = function() {
 		}
 	} else {
 		_hit = false;
+	}
+	
+	if(!_hit) {
+		_cannon.Reset();
 	}
 	
 	// update game field

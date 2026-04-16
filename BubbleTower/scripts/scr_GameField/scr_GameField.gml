@@ -1,3 +1,7 @@
+//      (1)(2)
+//    (6)(0)(3)
+//     (5)(4)
+
 global.LUT_hex_cell_even = [
 	[  0, -1 ],
 	[  1, -1 ],
@@ -16,11 +20,14 @@ global.LUT_hex_cell_not_even = [
 	[ -1,  1 ]
 ];
 
+//#macro BALL_DIAMETER 10
+//#macro BALL_RADIUS 5
+
 function sBall(gameField, index, colorIndex=0) constructor
 {
 	GameField = gameField;
 	
-	Index = index;
+	CellIndex = index;
 	ColorIndex = colorIndex;
 	Locked = false;
 	OffsetX = 0;
@@ -36,18 +43,16 @@ function sBall(gameField, index, colorIndex=0) constructor
 	
 	Step = function() {
 		static outPos = [ 0, 0, 0 ];
-		if(Moved)
-		{
-			var i = Index;
+		if(Moved) {
+			var i = CellIndex;
 			var gf = GameField;
-			var px = gf._positionsLUT2D_X[i];
-			var py = gf._positionsLUT2D_Y[i];
+			var px = gf.PositionsLUT2D_X[i];
+			var py = gf.PositionsLUT2D_Y[i];
 			
 			OffsetX *= 0.9;
 			OffsetY *= 0.9;
 			
-			if(OffsetX < 0.01 && OffsetY < 0.01)
-			{
+			if(OffsetX < 0.01 && OffsetY < 0.01) {
 				OffsetX = 0;
 				OffsetY = 0;
 				Moved = false;
@@ -65,8 +70,8 @@ function sGameFieldCannon(gameField) constructor {
 	_gameField = gameField;
 	
 	_posAngle = 0;
-	_pos2D = new sVector2(0, _gameField._cylinderHeight - _gameField._ballRadius);
-	_pos3D = new sVector(0, 0, -_gameField._ballDiameter * 1.5);
+	_pos2D = new sVector2(0, _gameField.CylinderHeight - _gameField.BallRadius);
+	_pos3D = new sVector(0, 0, -_gameField.BallDiameter * 1.5);
 	_angle = 0;
 	
 	_traceResultCellIndex = -1;
@@ -83,19 +88,19 @@ function sGameFieldCannon(gameField) constructor {
 	
 	SetPositionByAngle = function(angle) {
 		_posAngle = angle_normalize360(angle);
-		_pos2D.x = _posAngle / 360 * _gameField._fieldW;
-		_pos3D.x = lengthdir_x(_gameField._wrapRadius, _posAngle);
-		_pos3D.y = lengthdir_y(_gameField._wrapRadius, _posAngle);
+		_pos2D.x = _posAngle / 360 * _gameField.FieldW;
+		_pos3D.x = lengthdir_x(_gameField.WrapRadius, _posAngle);
+		_pos3D.y = lengthdir_y(_gameField.WrapRadius, _posAngle);
 	}
 	
 	SetAngleByTargetPos = function(px, py) {
-		if(py > _gameField._fieldH + _gameField._ballRadius) {
+		if(py > _gameField.FieldH + _gameField.BallRadius) {
 			return false;
 		}
 		
-		var angle1 = (_pos2D.x / _gameField._fieldW) * 360;
-		var angle2 = (px / _gameField._fieldW) * 360;
-		var posDiff = angle_difference(angle2, angle1) / 360 * _gameField._fieldW;
+		var angle1 = (_pos2D.x / _gameField.FieldW) * 360;
+		var angle2 = (px / _gameField.FieldW) * 360;
+		var posDiff = angle_difference(angle2, angle1) / 360 * _gameField.FieldW;
 		_angle = point_direction(0, _pos2D.y, posDiff, py) - 90;
 		return true;
 	}
@@ -108,7 +113,7 @@ function sGameFieldCannon(gameField) constructor {
 			return false;
 		}
 		
-		if(line_circle_collision_point(ox, oy, ox + vx, oy + vy, 0, 0, _gameField._wrapRadius, col)) {
+		if(line_circle_collision_point(ox, oy, ox + vx, oy + vy, 0, 0, _gameField.WrapRadius, col)) {
 			var resX = col[0];
 			var resY = col[1];
 			var resZ = oz + point_distance(ox, oy, col[0], col[1]) * (vz / dist2d);
@@ -135,22 +140,22 @@ function sGameFieldCannon(gameField) constructor {
 			return false;
 		}
 		
-		var ringRadius = _gameField._ballRadius * 1.25;
+		var ringRadius = _gameField.BallRadius * 1.25;
 		var ringRadiusSquared = ringRadius * ringRadius;
 		
 		var hit = false;
 		var bestHitDist = infinity;
 		var bestHitY = -infinity;
 		
-		var grid = _gameField._grid; // одномерный массив
-		var width = _gameField._fieldW; // ширина поля
-		var cellNumX = _gameField._cellNumX; // количество ячеек по оси X
-		var cellNumY = _gameField._cellNumY; // количество ячеек по оси Y
-		var positionsLUT2D_X = _gameField._positionsLUT2D_X;
-		var positionsLUT2D_Y = _gameField._positionsLUT2D_Y;
+		var grid = _gameField.Grid; // одномерный массив
+		var width = _gameField.FieldW; // ширина поля
+		var cellNumX = _gameField.CellNumX; // количество ячеек по оси X
+		var cellNumY = _gameField.CellNumY; // количество ячеек по оси Y
+		var positionsLUT2D_X = _gameField.PositionsLUT2D_X;
+		var positionsLUT2D_Y = _gameField.PositionsLUT2D_Y;
 		
-		var originY = _gameField._ballRadius;
-		var ballStepY = _gameField._ballStepY;
+		var originY = _gameField.BallRadius;
+		var ballStepY = _gameField.BallStepY;
 		
 		for (var row = cellNumY - 1; row >= 0; row--) {
 			var rowCenterY = originY + row * ballStepY;
@@ -219,6 +224,10 @@ function sGameFieldCannon(gameField) constructor {
 	GetTraceCellIndex = function() { return _traceResultCellIndex; }
 	CanShot = function() { return _traceResultCellIndex!=-1 && !_shot; }
 	
+	Reset = function() {
+		_traceResultCellIndex = -1;
+	}
+	
 	Shot = function() {
 		if(!CanShot()) {
 			return;
@@ -235,15 +244,15 @@ function sGameFieldCannon(gameField) constructor {
 	}
 	
 	Step = function() {
-		var ballDiameter = _gameField._ballDiameter;
-		var grid = _gameField._grid;
-		var cellNumTotal = _gameField._cellNumTotal;
-		var positionsLUT2D_X = _gameField._positionsLUT2D_X;
-		var positionsLUT2D_Y = _gameField._positionsLUT2D_Y;
-		
 		if(!_shot) {
 			return;
 		}
+		
+		var ballDiameter = _gameField.BallDiameter;
+		var grid = _gameField.Grid;
+		var cellNumTotal = _gameField.CellNumTotal;
+		var positionsLUT2D_X = _gameField.PositionsLUT2D_X;
+		var positionsLUT2D_Y = _gameField.PositionsLUT2D_Y;
 		
 		var d = point_distance(_ballPos2D.x, _ballPos2D.y, _ballTargetPos2D.x, _ballTargetPos2D.y);
 		var stop = d <= _ballSpeed;
@@ -277,6 +286,9 @@ function sGameFieldCannon(gameField) constructor {
 		
 		if(stop) {
 			_shot = false;
+			var ball = _gameField.AddBall(_ballTargetCellIndex, 0);
+			ball.OffsetX = posX - positionsLUT2D_X[_ballTargetCellIndex];
+			ball.OffsetY = posY - positionsLUT2D_Y[_ballTargetCellIndex];
 		}
 	}
 	
@@ -287,13 +299,13 @@ function sGameFieldCannon(gameField) constructor {
 		BallMesh().Draw(pos.x, pos.y, pos.z, colorIndex);
 		
 		if(!_shot && _traceResultCellIndex!=-1) {
-			var cylinderRadius = _gameField._wrapRadius;
-			var cylinderFullSpinLen = _gameField._fieldW;
+			var cylinderRadius = _gameField.WrapRadius;
+			var cylinderFullSpinLen = _gameField.FieldW;
 			var startPosAngle = -_posAngle;// -obj_Camera.ZAngle + 180;
 			
 			var rayAngle = -_angle;
-			var rayThickness = _gameField._ballRadius / 2;
-			var raySegmentLen = _gameField._ballRadius;
+			var rayThickness = _gameField.BallRadius / 2;
+			var raySegmentLen = _gameField.BallRadius;
 			
 			var traceLen = _traceResultLength;
 			
@@ -304,9 +316,9 @@ function sGameFieldCannon(gameField) constructor {
 			
 			var idx = GetTraceCellIndex();
 			if(idx!=-1) {
-				var px = _gameField._positionsLUT3D_X[idx];
-				var py = _gameField._positionsLUT3D_Y[idx];
-				var pz = _gameField._positionsLUT3D_Z[idx];
+				var px = _gameField.PositionsLUT3D_X[idx];
+				var py = _gameField.PositionsLUT3D_Y[idx];
+				var pz = _gameField.PositionsLUT3D_Z[idx];
 				BallMesh().Draw(px, py, pz, 0);
 			}
 		}
@@ -320,112 +332,125 @@ function sGameFieldCannon(gameField) constructor {
 
 // Cylindrical hexagonal grid
 function sGameField() constructor {
-	//      (1)(2)
-	//    (6)(0)(3)
-	//     (5)(4)
+	BallDiameter = 10;
+	BallRadius = BallDiameter / 2;
+	CellNumX = 24;
+	CellNumY = 18;
+	CellNumTotal = CellNumX * CellNumY;
 	
-	_ballDiameter = 10;
-	_ballRadius = _ballDiameter / 2;
-	_cellNumX = 24;
-	_cellNumY = 18;
-	_cellNumTotal = _cellNumX * _cellNumY;
+	BallOffsetX = BallRadius;
+	BallStepX = BallDiameter;
+	BallStepY = sqrt(3) * BallRadius;
 	
-	_ballOffsetX = _ballRadius;
-	_ballStepX = _ballDiameter;
-	_ballStepY = sqrt(3) * _ballRadius;
+	FieldW = BallStepX * CellNumX;
+	FieldH = BallStepY * CellNumY - BallStepY + BallDiameter;
 	
-	_fieldW = _ballStepX * _cellNumX;
-	_fieldH = _ballStepY * _cellNumY - _ballStepY + _ballDiameter;
-	
-	_angleStep = 360 / _cellNumX;
+	_angleStep = 360 / CellNumX;
 	_angleHalfStep = _angleStep / 2;
 	
-	_wrapRadius = _ballRadius / dtan(_angleHalfStep);
-	_cylinderRadius = _wrapRadius - _ballRadius;
-	_cylinderHeight = _fieldH + _ballDiameter * 2;
+	WrapRadius = BallRadius / dtan(_angleHalfStep);
+	CylinderRadius = WrapRadius - BallRadius;
+	CylinderHeight = FieldH + BallDiameter * 2;
+	RotationAngle = 0;
 	
-	_grid = array_create(_cellNumTotal, undefined);
+	Grid = array_create(CellNumTotal, undefined);
+	
+	AddBall = function(cellIndex, colorIndex) {
+		if(Grid[cellIndex]!=undefined) {
+			delete Grid[cellIndex];
+		}
+		var ball = new sBall(self, cellIndex, colorIndex);
+		Grid[cellIndex] = ball;
+		return ball;
+	}
+	
+	RemoveBall = function(cellIndex) {
+		if(Grid[cellIndex]!=undefined) {
+			delete Grid[cellIndex];
+			Grid[cellIndex] = undefined;
+		}
+	}
 	
 	// create balls
 	_createBalls = function(rowNum) {
-		var cellNum = rowNum * _cellNumX;
+		var cellNum = rowNum * CellNumX;
 		for(var i=0; i<cellNum; i++) {
 			if(irandom(1)) {
 				var colorIndex = irandom(4);
-				_grid[i] = new sBall(self, i, colorIndex);
+				AddBall(i, colorIndex);
 			}
 		}
 	}
 	
 	// positions LUT
-	_positionsLUTAngle = array_create(_cellNumTotal);
-	_positionsLUT2D_X = array_create(_cellNumTotal);
-	_positionsLUT2D_Y = array_create(_cellNumTotal);
-	_positionsLUT3D_X = array_create(_cellNumTotal);
-	_positionsLUT3D_Y = array_create(_cellNumTotal);
-	_positionsLUT3D_Z = array_create(_cellNumTotal);
-	_createPositionsLUT = function() {
+	PositionsLUTAngle = array_create(CellNumTotal);
+	PositionsLUT2D_X = array_create(CellNumTotal);
+	PositionsLUT2D_Y = array_create(CellNumTotal);
+	PositionsLUT3D_X = array_create(CellNumTotal);
+	PositionsLUT3D_Y = array_create(CellNumTotal);
+	PositionsLUT3D_Z = array_create(CellNumTotal);
+	_initPositionsLUT = function() {
 		var k = 0;
-		for(var j=0; j<_cellNumY; j++) {
-			var py = j * _ballStepY + _ballRadius;
-			var pxOffset = j%2==0 ? 0 : _ballOffsetX;
-			for(var i=0; i<_cellNumX; i++) {
-				var px = i * _ballStepX + pxOffset;
-				_positionsLUT2D_X[k] = px;
-				_positionsLUT2D_Y[k] = py;
-				_positionsLUTAngle[k] = wrap(px/_fieldW * 360, 0, 360);
+		for(var j=0; j<CellNumY; j++) {
+			var py = j * BallStepY + BallRadius;
+			var pxOffset = j%2==0 ? 0 : BallOffsetX;
+			for(var i=0; i<CellNumX; i++) {
+				var px = i * BallStepX + pxOffset;
+				PositionsLUT2D_X[k] = px;
+				PositionsLUT2D_Y[k] = py;
+				PositionsLUTAngle[k] = wrap(px/FieldW * 360, 0, 360);
 				k++;
 			}
 		}
 		
 		var pos3d = [];
-		for(var i=0; i<_cellNumTotal; i++) {
-			var px = _positionsLUT2D_X[i];
-			var py = _positionsLUT2D_Y[i];
+		for(var i=0; i<CellNumTotal; i++) {
+			var px = PositionsLUT2D_X[i];
+			var py = PositionsLUT2D_Y[i];
 			Convert2DTo3D(px, py, pos3d);
-			_positionsLUT3D_X[i] = pos3d[0];
-			_positionsLUT3D_Y[i] = pos3d[1];
-			_positionsLUT3D_Z[i] = pos3d[2];
+			PositionsLUT3D_X[i] = pos3d[0];
+			PositionsLUT3D_Y[i] = pos3d[1];
+			PositionsLUT3D_Z[i] = pos3d[2];
 		}
 	}
 	
 	SetRotationAngle = function(angle) {
-		_rotationAngle = angle;
+		RotationAngle = angle;
 	}
 	
 	// cell positions
 	GetCellPos2D = function(cx, cy, outPos) {
-		var i = cy * _cellNumX + cx;
-		outPos[@ 0] = _positionsLUT2D_X[i];
-		outPos[@ 1] = _positionsLUT2D_Y[i];
+		var i = cy * CellNumX + cx;
+		outPos[@ 0] = PositionsLUT2D_X[i];
+		outPos[@ 1] = PositionsLUT2D_Y[i];
 	}
 	
 	GetCellPos3D = function(cx, cy, outPos) {
-		var i = cy * _cellNumX + cx;
-		outPos[@ 0] = _positionsLUT3D_X[i];
-		outPos[@ 1] = _positionsLUT3D_Y[i];
-		outPos[@ 2] = _positionsLUT3D_Z[i];
+		var i = cy * CellNumX + cx;
+		outPos[@ 0] = PositionsLUT3D_X[i];
+		outPos[@ 1] = PositionsLUT3D_Y[i];
+		outPos[@ 2] = PositionsLUT3D_Z[i];
 	}
 	
 	// coord conversion
 	Convert2DTo3D = function(px, py, outPos) {
-		var anglePos = (px / _fieldW) * 360;
-		outPos[@ 0] = lengthdir_x(_wrapRadius, anglePos);
-		outPos[@ 1] = lengthdir_y(_wrapRadius, anglePos);
-		outPos[@ 2] = _fieldH - py;
+		var anglePos = (px / FieldW) * 360;
+		outPos[@ 0] = lengthdir_x(WrapRadius, anglePos);
+		outPos[@ 1] = lengthdir_y(WrapRadius, anglePos);
+		outPos[@ 2] = FieldH - py;
 	}
 	
 	Convert3DTo2D = function(px, py, pz, outPos) {
 		var dir = point_direction(0, 0, px, py);
-		outPos[@ 0] = (dir / 360) * _fieldW;
-		outPos[@ 1] = _fieldH - pz;
+		outPos[@ 0] = (dir / 360) * FieldW;
+		outPos[@ 1] = FieldH - pz;
 	}
 	
 	// Returns snapped cell index of hexagonal 2d grid by position.
 	Pos2DToIndexCell = function(px, py) {
-		px = wrap(px, 0, _fieldW); // wrap by x
+		px = wrap(px, 0, FieldW); // wrap by x
 		
-		var size = _ballRadius;
+		var size = BallRadius;
 		var cellSizeX = size;
 		var cellSizeY = ( size * (2 / sqrt(3)) ) / 2;
 		
@@ -450,50 +475,50 @@ function sGameField() constructor {
 			ix++;
 		}
 		
-		var colIdx = wrap((ix div 2), 0, _cellNumX);
+		var colIdx = wrap((ix div 2), 0, CellNumX);
 		var rowIdx = iy div 3;
-		if(colIdx<0 || colIdx>=_cellNumX || rowIdx<0 || rowIdx>=_cellNumY) {
+		if(colIdx<0 || colIdx>=CellNumX || rowIdx<0 || rowIdx>=CellNumY) {
 			return -1;
 		}
 		
-		return rowIdx * _cellNumX + colIdx;
+		return rowIdx * CellNumX + colIdx;
 	}
 	
 	// cell data
 	GetCell = function(cx, cy) {
-		return _grid[ cy * _cellNumX + (cx % _cellNumX + _cellNumX) % _cellNumX ];
+		return Grid[ cy * CellNumX + (cx % CellNumX + CellNumX) % CellNumX ];
 	}
 	
 	// update
 	Step = function() {
 		var i = 0;
-		repeat(_cellNumTotal) {
-			if(_grid[i]!=undefined) {
-				_grid[i].Step();
+		repeat(CellNumTotal) {
+			if(Grid[i]!=undefined) {
+				Grid[i].Step();
 			}
 			i++;
 		}
 	}
 	
 	// init
-	_createBalls(_cellNumY/2);
-	_createPositionsLUT();
+	_createBalls(CellNumY/2);
+	_initPositionsLUT();
 }
 
 
 function sGameFieldRenderer(gameField) constructor {
 	_gameField = gameField;
-	_ballsToDraw = array_create(_gameField._cellNumX * _gameField._cellNumY, -1);
+	_ballsToDraw = array_create(_gameField.CellNumX * _gameField.CellNumY, -1);
 	_ballsToDrawNum = 0;
 	
 	UpdateBallsToDraw = function() {
 		var i = 0;
 		var j = 0;
-		var grid = _gameField._grid;
-		var positionsLUTAngle = _gameField._positionsLUTAngle;
-		var posAngle = _gameField._rotationAngle;
+		var grid = _gameField.Grid;
+		var positionsLUTAngle = _gameField.PositionsLUTAngle;
+		var posAngle = _gameField.RotationAngle;
 		var ballsToDraw = _ballsToDraw;
-		repeat(_gameField._cellNumTotal) {
+		repeat(_gameField.CellNumTotal) {
 			if(grid[i]!=undefined && abs(angle_difference(positionsLUTAngle[i], posAngle)) < 135) {
 				ballsToDraw[j] = i;
 				j++;
@@ -503,10 +528,10 @@ function sGameFieldRenderer(gameField) constructor {
 		_ballsToDrawNum = j;
 	}
 	
-	Draw = function()
-	{
+	// main
+	Draw = function() {
 		var i = 0;
-		var grid = _gameField._grid;
+		var grid = _gameField.Grid;
 		var mesh = BallMesh();
 		
 		mesh.DrawInstancesBegin();
@@ -521,10 +546,10 @@ function sGameFieldRenderer(gameField) constructor {
 		mesh.DrawInstancesEnd();
 	}
 	
-	DrawDepth = function()
-	{
+	// draw depth for shadow mapping
+	DrawDepth = function() {
 		var i = 0;
-		var grid = _gameField._grid;
+		var grid = _gameField.Grid;
 		var mesh = BallMesh();
 		
 		mesh.DrawDepthInstancesBegin();
