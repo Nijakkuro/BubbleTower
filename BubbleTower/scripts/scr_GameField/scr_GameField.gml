@@ -3,7 +3,7 @@
 //    (6)(0)(3)
 //     (5)(4)
 
-global.LUT_hex_cell_not_even = [
+global.LUT_hex_neighbors_odd_row = [
 	[  0, -1 ],
 	[  1, -1 ],
 	[ -1,  0 ],
@@ -12,7 +12,7 @@ global.LUT_hex_cell_not_even = [
 	[  0,  1 ]
 ];
 
-global.LUT_hex_cell_even = [
+global.LUT_hex_neighbors_even_row = [
 	[ -1, -1 ],
 	[  0, -1 ],
 	[ -1,  0 ],
@@ -57,7 +57,8 @@ function sBall(gameField, index, colorIndex=0) constructor
 			
 			var cx = i mod gf.CellNumX;
 			var cy = i div gf.CellNumX;
-			var lut = cy mod 2 == 0 ? global.LUT_hex_cell_even : global.LUT_hex_cell_not_even;
+			// Четный row (cy mod 2 == 0) использует LUT even_row.
+			var lut = cy mod 2 == 0 ? global.LUT_hex_neighbors_even_row : global.LUT_hex_neighbors_odd_row;
 			var n = 0;
 			repeat(6) {
 				var nx = cx + lut[n][0];
@@ -257,7 +258,7 @@ function sGameFieldCannon(gameField) constructor {
 	GetAngle = function() { return _angle; }
 	GetTraceLength = function() { return _traceResultLength; }
 	GetTraceCellIndex = function() { return _traceResultCellIndex; }
-	CanShot = function() { return _traceResultCellIndex!=-1 && !_shot; }
+	CanShot = function() { return _traceResultCellIndex!=-1 && !_shot && !_gameField.IsBusy(); }
 	
 	Reset = function() {
 		_traceResultCellIndex = -1;
@@ -403,6 +404,15 @@ function sGameField() constructor {
 	VisibleHalfArcAngle = 135;
 	// Порог видимости для фронтальной части цилиндра.
 	VisibleBallAngleThreshold = VisibleHalfArcAngle;
+	// Количество "шагов волны" удаления за кадр.
+	DestroyWaveStepsPerStep = 1;
+	DestroyWaveStepPeriod = 0.1; // seconds
+	// Количество рядов плавающих шаров за кадр (снизу-вверх).
+	FallRowsPerStep = 1;
+	FallRowsStepPeriod = 0.1; // seconds
+	// Внешние callbacks для VFX/звука.
+	OnBallDestroy = undefined;
+	OnBallFall = undefined;
 	CellNumX = 24;
 	CellNumY = 18;
 	CellNumTotal = CellNumX * CellNumY;
@@ -423,6 +433,12 @@ function sGameField() constructor {
 	RotationAngle = 0;
 	
 	Grid = array_create(CellNumTotal, undefined);
+	_removalStage = 0; // 0=idle, 1=destroy wave, 2=fall rows
+	_destroyWaveBuckets = [];
+	_destroyWaveCursor = 0;
+	_pendingFloatingAfterDestroy = false;
+	_fallRowsBuckets = array_create(CellNumY, undefined);
+	_fallRowCursor = CellNumY - 1;
 	
 	AddBall = function(cellIndex, colorIndex) {
 		// Перезапись ячейки без delete: быстрее и достаточно для GC.
@@ -439,10 +455,10 @@ function sGameField() constructor {
 	_createBalls = function(rowNum) {
 		var cellNum = rowNum * CellNumX;
 		for(var i=0; i<cellNum; i++) {
-			if(irandom(1)) {
-				var colorIndex = irandom(4);
+			//if(irandom(1)) {
+				var colorIndex = irandom(3);
 				AddBall(i, colorIndex);
-			}
+			//}
 		}
 	}
 	
@@ -566,7 +582,8 @@ function sGameField() constructor {
 	GetNeighborIndices = function(cellIndex, outArray) {
 		var cx = cellIndex mod CellNumX;
 		var cy = cellIndex div CellNumX;
-		var lut = cy mod 2 == 0 ? global.LUT_hex_cell_even : global.LUT_hex_cell_not_even;
+		// Четный row (cy mod 2 == 0) использует LUT even_row.
+		var lut = cy mod 2 == 0 ? global.LUT_hex_neighbors_even_row : global.LUT_hex_neighbors_odd_row;
 		var count = 0;
 		var i = 0;
 		repeat(6) {
@@ -675,6 +692,123 @@ function sGameField() constructor {
 		}
 	}
 	
+	_scheduleDestroyWave = function(indices, count, originIndex) {
+		_destroyWaveBuckets = [];
+		_destroyWaveCursor = 0;
+		if(count<=0) {
+			return;
+		}
+		
+		var ox = PositionsLUT2D_X[originIndex];
+		var oy = PositionsLUT2D_Y[originIndex];
+		var i = 0;
+		repeat(count) {
+			var idx = indices[i];
+			var dx = WrapDeltaX(ox, PositionsLUT2D_X[idx]);
+			var dy = PositionsLUT2D_Y[idx] - oy;
+			var dist = point_distance(0, 0, dx, dy);
+			var waveStep = floor(dist / BallDiameter + 0.5);
+			if(waveStep>array_length(_destroyWaveBuckets)-1) {
+				_destroyWaveBuckets[waveStep] = [];
+			}
+			var bucket = _destroyWaveBuckets[waveStep];
+			bucket[array_length(bucket)] = idx;
+			i++;
+		}
+	}
+	
+	_buildFloatingRowsBuckets = function() {
+		var anchored = array_create(CellNumTotal, false);
+		FindAnchoredToTop(anchored);
+		
+		var row = 0;
+		repeat(CellNumY) {
+			_fallRowsBuckets[row] = [];
+			row++;
+		}
+		
+		var i = 0;
+		repeat(CellNumTotal) {
+			if(Grid[i]!=undefined && !anchored[i]) {
+				var r = i div CellNumX;
+				var bucket = _fallRowsBuckets[r];
+				bucket[array_length(bucket)] = i;
+			}
+			i++;
+		}
+		
+		_fallRowCursor = CellNumY - 1;
+	}
+	
+	_emitAndRemoveBall = function(idx, callback) {
+		var ball = Grid[idx];
+		if(ball==undefined) {
+			return;
+		}
+		
+		if(!is_undefined(callback)) {
+			callback(ball.Pos3D_X, ball.Pos3D_Y, ball.Pos3D_Z, ball.ColorIndex);
+		}
+		RemoveBall(idx);
+	}
+	
+	_processDestroyWaveStep = function() {
+		var stepsLeft = DestroyWaveStepsPerStep;
+		while(stepsLeft > 0) {
+			while(_destroyWaveCursor < array_length(_destroyWaveBuckets) && is_undefined(_destroyWaveBuckets[_destroyWaveCursor])) {
+				_destroyWaveCursor++;
+			}
+			
+			if(_destroyWaveCursor >= array_length(_destroyWaveBuckets)) {
+				_removalStage = 0;
+				if(_pendingFloatingAfterDestroy) {
+					_pendingFloatingAfterDestroy = false;
+					_buildFloatingRowsBuckets();
+					_removalStage = 2;
+				}
+				return;
+			}
+			
+			var bucket = _destroyWaveBuckets[_destroyWaveCursor];
+			var i = 0;
+			repeat(array_length(bucket)) {
+				_emitAndRemoveBall(bucket[i], OnBallDestroy);
+				i++;
+			}
+			
+			_destroyWaveCursor++;
+			stepsLeft--;
+		}
+	}
+	
+	_processFallRowsStep = function() {
+		var rowsLeft = FallRowsPerStep;
+		while(rowsLeft > 0) {
+			while(_fallRowCursor >= 0 && array_length(_fallRowsBuckets[_fallRowCursor])==0) {
+				_fallRowCursor--;
+			}
+			
+			if(_fallRowCursor < 0) {
+				_removalStage = 0;
+				return;
+			}
+			
+			var bucket = _fallRowsBuckets[_fallRowCursor];
+			var i = 0;
+			repeat(array_length(bucket)) {
+				_emitAndRemoveBall(bucket[i], OnBallFall);
+				i++;
+			}
+			
+			_fallRowCursor--;
+			rowsLeft--;
+		}
+	}
+	
+	IsBusy = function() {
+		return _removalStage!=0;
+	}
+	
 	// Выбор ячейки для прикрепления прилетевшего шарика:
 	// 1) расчетная ячейка, если свободна
 	// 2) ближайшая свободная соседняя к точке контакта
@@ -712,37 +846,25 @@ function sGameField() constructor {
 	// Основной post-shot pipeline:
 	// place -> match>=3 -> remove -> floating -> remove.
 	ResolveShotPlacement = function(placedIndex) {
+		if(IsBusy()) {
+			return false;
+		}
+		
 		static sameColorGroup = [];
 		var sameColorCount = FindConnectedSameColor(placedIndex, sameColorGroup);
 		if(sameColorCount < 3) {
 			return false;
 		}
 		
-		RemoveBallsByIndices(sameColorGroup, sameColorCount);
-		return true; // temp to test previous logic
-
-		var anchored = array_create(CellNumTotal, false);
-		FindAnchoredToTop(anchored);
-		
-		static floating = [];
-		var floatingCount = 0;
-		var i = 0;
-		repeat(CellNumTotal) {
-			if(Grid[i]!=undefined && !anchored[i]) {
-				floating[floatingCount] = i;
-				floatingCount++;
-			}
-			i++;
-		}
-		
-		if(floatingCount > 0) {
-			RemoveBallsByIndices(floating, floatingCount);
-		}
+		_scheduleDestroyWave(sameColorGroup, sameColorCount, placedIndex);
+		_pendingFloatingAfterDestroy = true;
+		_removalStage = 1;
 		
 		return true;
 	}
 	
 	// update
+	_delay = 0;
 	Step = function() {
 		var i = 0;
 		repeat(CellNumTotal) {
@@ -750,6 +872,20 @@ function sGameField() constructor {
 				Grid[i].Step();
 			}
 			i++;
+		}
+		
+		if(_delay>0) {
+			_delay -= delta_time * 0.000001;
+		}
+
+		if(_delay<=0) {
+			if(_removalStage==1) {
+				_processDestroyWaveStep();
+				_delay = DestroyWaveStepPeriod;
+			} else if(_removalStage==2) {
+				_processFallRowsStep();
+				_delay = FallRowsStepPeriod;
+			}
 		}
 	}
 	
